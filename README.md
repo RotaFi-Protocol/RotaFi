@@ -60,7 +60,7 @@ RotaFi brings the centuries-old practice of **ROSCA** (Rotating Savings and Cred
 | Contribution Vault | Stellar Testnet | `CBIHU...QHL4MO` | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CBIHUJSOA4GSVSLFENQRJAPFUUWHPR5DXIU6H3HEMQU4XQU5EJQHL4MO) |
 | Reputation Registry | Stellar Testnet | `CDVS7...6AXJTUC` | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDVS7X47ICQQGRR67K4FL7DAL3XB3FSSAWKXWF4RIKJVWEHTJ6AXJTUC) |
 | Bid Engine | Stellar Testnet | `CD3OE...OXNDM6P` | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CD3OE7WPUSSM7ZR2552CVNZH2O5LHV52UKHSPR3VYVG63CWHUOXNDM6P) |
-| Backend API | — | — | [Deployment tracking → #31](https://github.com/RotaFi-Protocol/RotaFi/issues/31) |
+| Backend API | Render | `rotafi.onrender.com` | [View health →](https://rotafi.onrender.com/healthz) |
 | Keeper Bot | — | — | [Deployment tracking → #31](https://github.com/RotaFi-Protocol/RotaFi/issues/31) |
 | Frontend | — | — | [Deployment tracking → #31](https://github.com/RotaFi-Protocol/RotaFi/issues/31) |
 | Documentation | — | — | [Deployment tracking → #31](https://github.com/RotaFi-Protocol/RotaFi/issues/31) |
