@@ -1,6 +1,6 @@
 ---
 title: What is RotaFi?
-description: Trustless rotating savings and credit associations on Stellar Soroban.
+description: Trustless rotating savings on Stellar Soroban.
 ---
 
 RotaFi brings the centuries-old practice of **ROSCA** (Rotating Savings and Credit Associations) — also known as chit funds, tandas, or susu — to the Stellar blockchain.
