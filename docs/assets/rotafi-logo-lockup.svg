@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7C3AED"/>
+      <stop offset="100%" style="stop-color:#3B82F6"/>
+    </linearGradient>
+  </defs>
+  <!-- Mark -->
+  <circle cx="42" cy="50" r="36" fill="url(#g)" opacity="0.1"/>
+  <circle cx="42" cy="50" r="28" fill="url(#g)" opacity="0.2"/>
+  <path d="M42 22C26.54 22 14 34.54 14 50s12.54 28 28 28 28-12.54 28-28-12.54-28-28-28zm0 4c13.25 0 24 10.75 24 24s-10.75 24-24 24-24-10.75-24-24 10.75-24 24-24z" fill="url(#g)"/>
+  <text x="42" y="56" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="url(#g)">R</text>
+  <!-- Wordmark -->
+  <text x="100" y="60" font-family="system-ui,sans-serif" font-size="36" font-weight="700" fill="url(#g)">RotaFi</text>
+  <text x="100" y="78" font-family="system-ui,sans-serif" font-size="12" fill="#6B7280">Trustless ROSCA on Stellar</text>
+</svg>
