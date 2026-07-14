@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = [
+    "circle-factory",
+    "contribution-vault",
+    "reputation-registry",
+    "bid-engine",
+]
+
+[workspace.dependencies]
+soroban-sdk = "27.0.0"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true
+codegen-units = 1
+panic = "abort"
