@@ -63,7 +63,7 @@ RotaFi brings the centuries-old practice of **ROSCA** (Rotating Savings and Cred
 | Backend API | Render | `rotafi.onrender.com` | [View health →](https://rotafi.onrender.com/healthz) |
 | Keeper Bot | — | — | [Deployment tracking → #31](https://github.com/RotaFi-Protocol/RotaFi/issues/31) |
 | Frontend | — | — | [Deployment tracking → #31](https://github.com/RotaFi-Protocol/RotaFi/issues/31) |
-| Documentation | — | — | [Deployment tracking → #31](https://github.com/RotaFi-Protocol/RotaFi/issues/31) |
+| Documentation | GitHub Pages | `rotafi-protocol.github.io/RotaFi` | [View docs →](https://rotafi-protocol.github.io/RotaFi/) |
 
 ---
 
