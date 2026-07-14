@@ -1,13 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
   <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#7C3AED"/>
-      <stop offset="100%" style="stop-color:#3B82F6"/>
+    <linearGradient id="grad" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
     </linearGradient>
   </defs>
-  <circle cx="64" cy="64" r="60" fill="url(#g)" opacity="0.1"/>
-  <circle cx="64" cy="64" r="48" fill="url(#g)" opacity="0.2"/>
-  <path d="M64 16C37.49 16 16 37.49 16 64s21.49 48 48 48 48-21.49 48-48S90.51 16 64 16zm0 8c22.09 0 40 17.91 40 40s-17.91 40-40 40-40-17.91-40-40 17.91-40 40-40z" fill="url(#g)"/>
-  <path d="M64 36c-15.46 0-28 12.54-28 28s12.54 28 28 28 28-12.54 28-28-12.54-28-28-28zm-4 12h8v28l-20 12 4-6.93 12-6.93V48zm8 16c6.63 0 12 5.37 12 12s-5.37 12-12 12-12-5.37-12-12 5.37-12 12-12z" fill="url(#g)"/>
-  <text x="64" y="62" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" font-weight="700" fill="url(#g)">R</text>
+  <circle cx="64" cy="64" r="60" stroke="url(#grad)" stroke-width="4" fill="none"/>
+  <circle cx="64" cy="64" r="44" stroke="url(#grad)" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M44 44h40v12h-6V88h-8V68h-26V48z" fill="url(#grad)"/>
+  <path d="M56 48h-8v8h8v-8z" fill="url(#grad)"/>
+  <path d="M44 60h36v4H44z" fill="url(#grad)"/>
+  <path d="M44 72h36v4H44z" fill="url(#grad)" opacity="0.4"/>
+  <path d="M72 44v8l-8 -8" stroke="url(#grad)" stroke-width="3" fill="none" opacity="0.6"/>
 </svg>
