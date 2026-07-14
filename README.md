@@ -61,8 +61,8 @@ RotaFi brings the centuries-old practice of **ROSCA** (Rotating Savings and Cred
 | Reputation Registry | Stellar Testnet | `CDVS7...6AXJTUC` | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDVS7X47ICQQGRR67K4FL7DAL3XB3FSSAWKXWF4RIKJVWEHTJ6AXJTUC) |
 | Bid Engine | Stellar Testnet | `CD3OE...OXNDM6P` | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CD3OE7WPUSSM7ZR2552CVNZH2O5LHV52UKHSPR3VYVG63CWHUOXNDM6P) |
 | Backend API | Render | `rotafi.onrender.com` | [View health →](https://rotafi.onrender.com/healthz) |
-| Keeper Bot | — | — | [Deployment tracking → #31](https://github.com/RotaFi-Protocol/RotaFi/issues/31) |
-| Frontend | — | — | [Deployment tracking → #31](https://github.com/RotaFi-Protocol/RotaFi/issues/31) |
+| Keeper Bot | — | — | Skipped (requires paid Render plan) |
+| Frontend | Vercel | `rota-fi.vercel.app` | [View →](https://rota-fi.vercel.app/) |
 | Documentation | GitHub Pages | `rotafi-protocol.github.io/RotaFi` | [View docs →](https://rotafi-protocol.github.io/RotaFi/) |
 
 ---
