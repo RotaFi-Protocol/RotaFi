@@ -4,6 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'RotaFi — Trustless ROSCA on Stellar',
   description: 'Trustless rotating savings and credit associations on Stellar Soroban',
+  icons: { icon: '/favicon.svg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -12,14 +13,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header style={{
           borderBottom: '1px solid #E5E7EB',
-          padding: '1rem 2rem',
+          padding: '0.75rem 2rem',
           backgroundColor: 'white',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}>
-          <a href="/" style={{ fontWeight: 700, fontSize: '1.25rem', color: '#7C3AED', textDecoration: 'none' }}>
-            RotaFi
+          <a href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <img src="/rotafi-logo.svg" alt="RotaFi" style={{ height: '32px' }} />
           </a>
           <nav style={{ display: 'flex', gap: '1.5rem' }}>
             <NavLink href="/">Browse</NavLink>
