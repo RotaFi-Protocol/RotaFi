@@ -5,18 +5,13 @@ template: splash
 hero:
   title: RotaFi
   tagline: Trustless rotating savings and credit associations on Stellar Soroban
-  image:
-    file: ../../public/rotafi-logo-lockup.svg
   actions:
     - text: What is RotaFi?
       link: /overview/introduction/
-      icon: right-arrow
     - text: Running Locally
       link: /guides/running-locally/
-      icon: terminal
     - text: GitHub
       link: https://github.com/RotaFi-Protocol/RotaFi
-      icon: external
       variant: minimal
 ---
 
