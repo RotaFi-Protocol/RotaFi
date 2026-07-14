@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="640" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F0A1A"/>
+      <stop offset="100%" stop-color="#1A1030"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <g transform="translate(260 180)">
+    <circle cx="160" cy="80" r="100" stroke="url(#brand)" stroke-width="7" fill="none" opacity="0.8"/>
+    <circle cx="160" cy="80" r="74" stroke="url(#brand)" stroke-width="3" fill="none" opacity="0.4"/>
+    <circle cx="160" cy="80" r="52" stroke="url(#brand)" stroke-width="1" fill="none" opacity="0.2"/>
+    <path d="M108 100h58v16h-12v48h-10v-48h-36z" fill="url(#brand)"/>
+    <path d="M124 105h-8v10h8z" fill="url(#brand)"/>
+    <path d="M108 118h46v6h-46z" fill="url(#brand)"/>
+    <path d="M108 134h46v6h-46z" fill="url(#brand)" opacity="0.5"/>
+  </g>
+  <text x="440" y="255" font-family="system-ui, -apple-system, sans-serif" font-size="80" font-weight="800" fill="url(#brand)" letter-spacing="-1">RotaFi</text>
+  <text x="440" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="22" fill="#9CA3AF" letter-spacing="4">TRUSTLESS ROSCA ON STELLAR</text>
+  <text x="640" y="520" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" text-anchor="middle">github.com/RotaFi-Protocol</text>
+</svg>
