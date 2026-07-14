@@ -53,10 +53,10 @@ RotaFi brings the centuries-old practice of **ROSCA** (Rotating Savings and Cred
 
 | Service | Network | Address / URL | Status |
 |---------|---------|---------------|--------|
-| Circle Factory | Stellar Testnet | — | `pending` |
-| Contribution Vault | Stellar Testnet | — | `pending` |
-| Reputation Registry | Stellar Testnet | — | `pending` |
-| Bid Engine | Stellar Testnet | — | `pending` |
+| Circle Factory | Stellar Testnet | `CC2XL...BHDSX6` | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CC2XL3M4FN3R2YLRGUKFWVQGWBTDQ6O4JZO66V6VGPY64QWCJBWHDSX6) |
+| Contribution Vault | Stellar Testnet | `CBIHU...QHL4MO` | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CBIHUJSOA4GSVSLFENQRJAPFUUWHPR5DXIU6H3HEMQU4XQU5EJQHL4MO) |
+| Reputation Registry | Stellar Testnet | `CDVS7...6AXJTUC` | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDVS7X47ICQQGRR67K4FL7DAL3XB3FSSAWKXWF4RIKJVWEHTJ6AXJTUC) |
+| Bid Engine | Stellar Testnet | `CD3OE...OXNDM6P` | [View on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CD3OE7WPUSSM7ZR2552CVNZH2O5LHV52UKHSPR3VYVG63CWHUOXNDM6P) |
 | Backend API | — | — | `pending` |
 | Keeper Bot | — | — | `pending` |
 | Frontend | — | — | `pending` |
@@ -66,18 +66,23 @@ RotaFi brings the centuries-old practice of **ROSCA** (Rotating Savings and Cred
 
 ## Quick Start
 
-> Coming soon — check back after Phase 1-2 for full setup instructions.
-
 ```bash
 # Clone the repo
 git clone https://github.com/RotaFi-Protocol/RotaFi.git
 cd rotafi
 
-# Build contracts (coming soon)
-# cargo build
+# Build contracts
+cd contract
+cargo build --target wasm32v1-none --release
 
-# Run backend (coming soon)
-# npm start
+# Run tests
+cargo test
+
+# Deploy to testnet (see contract/DEPLOYED_ADDRESSES.md for current addresses)
+soroban contract deploy \
+  --wasm target/wasm32v1-none/release/circle_factory.wasm \
+  --source rotafi-deployer \
+  --network testnet
 ```
 
 ---
