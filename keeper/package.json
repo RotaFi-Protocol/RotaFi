@@ -1,0 +1,28 @@
+{
+  "name": "rotafi-keeper",
+  "version": "0.1.0",
+  "description": "RotaFi Keeper Bot - Round advancement and default detection",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "jest --forceExit --detectOpenHandles",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.4",
+    "@types/uuid": "^10.0.0",
+    "eslint": "^9.20.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
