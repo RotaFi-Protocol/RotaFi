@@ -8,6 +8,9 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
+  <a href="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-contracts.yml"><img src="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-contracts.yml/badge.svg" alt="Contracts CI" /></a>
+  <a href="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-backend.yml"><img src="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-backend.yml/badge.svg" alt="Backend CI" /></a>
+  <a href="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-keeper.yml"><img src="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-keeper.yml/badge.svg" alt="Keeper CI" /></a>
 </p>
 
 ---
@@ -84,6 +87,11 @@ soroban contract deploy \
   --source rotafi-deployer \
   --network testnet
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, PR conventions, and test commands.
+Browse our [issue tracker](https://github.com/RotaFi-Protocol/RotaFi/issues) for good first issues.
 
 ---
 
