@@ -1,34 +1,44 @@
 # RotaFi Roadmap
 
-## Near-Term (Q3 2026)
+---
 
-### v0.2 — Mainnet Preparation
-- [ ] Complete contract audit
-- [ ] Deploy contracts to Stellar Mainnet
-- [ ] Finish SEP-24 anchor on/off-ramp integration
-- [ ] Add multi-currency support beyond USDC
+## v0.1.0 — Initial Protocol Release ✅ (October 2026)
 
-### v0.3 — Mobile & UX
-- [ ] Mobile-responsive layout pass
-- [ ] Add e2e tests (Playwright) for full join-through-payout flow
-- [ ] Add wallet connect improvements (WalletConnect, xBull mobile)
+- CircleFactory, ContributionVault, ReputationRegistry, BidEngine contracts on testnet
+- Keeper bot for automated round advancement and collateral slashing
+- REST backend API (Express + TypeScript)
+- Next.js frontend with Freighter wallet integration
+- Astro Starlight documentation site
+- GitHub Actions CI/CD for all components
 
-## Medium-Term (Q4 2026)
+---
 
-### v0.4 — Advanced Features
-- [ ] Circle-completion NFT/badge as a reputation credential
-- [ ] Additional payout methods (Dutch auction, fixed order)
-- [ ] Interest-bearing vaults (lend idle funds to lending protocols)
-- [ ] Localization (i18n) for target markets: Hindi, Spanish, Swahili
-- [ ] Public API rate-limit dashboard
+## v0.2.0 — Reputation & Governance (Q4 2026)
 
-## Long-Term
+- [ ] **Reputation-gated circles** — minimum on-chain reputation score required to join
+- [ ] **Reputation decay** — scores decay over time if a member stops participating
+- [ ] **Circle governance** — members vote to eject a defaulting member and redistribute their collateral
+- [ ] **Multi-token support** — accept XLM in addition to USDC
+- [ ] **Circle templates** — pre-configured circle types (weekly micro, monthly standard, annual large)
+- [ ] **Mobile-responsive frontend overhaul**
+- [ ] **Keeper decentralization** — support community keepers with on-chain keeper registry
 
-### v1.0 — Production
-- [ ] DAO governance for protocol parameters
-- [ ] Analytics dashboard for circle organizers
-- [ ] Mobile apps (React Native or Flutter)
-- [ ] Integration with Stellar Disbursement Platform for bulk payouts
-- [ ] Threat-model doc for default/slashing mechanism
-- [ ] Cargo audit / npm audit scheduled CI jobs
-- [ ] Rate-limit and abuse-prevention review for bid engine
+---
+
+## v0.3.0 — DeFi Integrations (Q1 2027)
+
+- [ ] **Yield on idle collateral** — route locked collateral to a Stellar lending protocol while waiting for payout round
+- [ ] **Cross-circle reputation** — reputation score portable across multiple circles
+- [ ] **Anchor integration** — allow members to fund circles via Stellar anchors (SEP-24) from fiat on-ramps
+- [ ] **Circle NFT receipts** — mint an NFT on each completed circle as a proof-of-participation credential
+- [ ] **TypeScript SDK** — embed RotaFi circles into third-party dApps
+- [ ] **Mainnet deployment** — full audit + mainnet contract addresses
+
+---
+
+## Known Limitations (Current)
+
+- Testnet only — no mainnet deployment yet
+- Keeper is centralized — single operator, not yet decentralized
+- No yield on locked collateral during waiting rounds
+- BidEngine is optional and not yet surfaced in the frontend UI
