@@ -1,32 +1,57 @@
 # Changelog
 
-All notable changes to RotaFi will be documented in this file.
+All notable changes to RotaFi are documented here.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+---
 
-## [Unreleased]
-
-### Added
-- Soroban smart contracts: Circle Factory, Contribution Vault, Reputation Registry, Bid Engine
-- Express backend REST API with input validation and rate limiting
-- Keeper bot for automated round advancement and default detection
-- Next.js frontend with wallet integration (Freighter, xBull, Rabet)
-- Astro Starlight documentation site
-- MIT license
-- CONTRIBUTING.md with setup instructions and PR conventions
-- CODE_OF_CONDUCT.md (Contributor Covenant v2.1)
-
-## [0.1.0] - 2026-07-14
+## [0.1.0] — 2026-10-01
 
 ### Added
-- Initial repository scaffolding with README, logo, and license
-- Circle Factory contract: create circles with configurable params
-- Contribution Vault contract: escrow, contributions, payouts, default handling
-- Reputation Registry contract: cross-circle on-chain reputation scores
-- Bid Engine contract: sealed-bid auction logic
-- All 4 contracts deployed to Stellar Testnet
-- Backend REST API: circle, contribution, reputation, and bid endpoints
-- Keeper bot: poll-based round advancement and default detection
-- Next.js frontend: circle browser, dashboard, bids, reputation pages
-- Documentation site: protocol overview, contract API, guides
+
+#### Contracts (Soroban/Rust)
+- `CircleFactory` — create and manage ROSCA circles with configurable member cap, contribution amount, and round duration
+- `ContributionVault` — accept member USDC deposits per round, track payment status, slash collateral on missed contributions
+- `ReputationRegistry` — on-chain reputation scoring per Stellar address, updated on each completed or missed round
+- `BidEngine` — optional sealed-bid auction for payout order; members bid to receive the pot earlier in exchange for a yield discount
+- 48 unit tests across all 4 contracts
+
+#### Backend (Express + TypeScript)
+- REST API with endpoints for circles, members, rounds, and reputation
+- Input validation, rate limiting, structured logging with `pino`
+- 23 integration tests
+- Deployed on Render: `https://rotafi.onrender.com`
+
+#### Keeper (Node.js + TypeScript)
+- Automated round advancement — triggers next round when duration elapses
+- Collateral slashing on missed contributions
+- Exponential backoff retry on Soroban RPC errors
+- 15 unit tests
+- Deployed on Render as Background Worker
+
+#### Frontend (Next.js 14 + TypeScript)
+- Circle browser — view all active circles on testnet
+- Dashboard — connect Freighter, view joined circles and contribution status
+- Create circle flow — set parameters and deploy via contract invocation
+- Deployed on Vercel: `https://rota-fi.vercel.app`
+
+#### Docs (Astro Starlight)
+- Protocol overview, how ROSCA works, contract reference
+- API reference for all backend endpoints
+- Self-hosting guide for the keeper
+- Deployed on GitHub Pages: `https://rotafi-protocol.github.io/RotaFi`
+
+#### Infrastructure
+- GitHub Actions CI for all 5 components
+- 4 contracts deployed to Stellar Testnet with verified addresses
+- `render.yaml` for one-click Render deployment
+- `FUNDING.json` for GrantFox / Stellar Wave Program
+
+### Contracts (Testnet)
+
+| Contract | Address |
+|---|---|
+| Circle Factory | `CC2XL3M4FN3R2YLRGUKFWVQGWBTDQ6O4JZO66V6VGPY64QWCJBWHDSX6` |
+| Contribution Vault | `CBIHUJSOA4GSVSLFENQRJAPFUUWHPR5DXIU6H3HEMQU4XQU5EJQHL4MO` |
+| Reputation Registry | `CDVS7X47ICQQGRR67K4FL7DAL3XB3FSSAWKXWF4RIKJVWEHTJ6AXJTUC` |
+| Bid Engine | `CD3OE7WPUSSM7ZR2552CVNZH2O5LHV52UKHSPR3VYVG63CWHUOXNDM6P` |
