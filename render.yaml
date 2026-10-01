@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: rotafi-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: CIRCLE_FACTORY_CONTRACT_ID
+        value: CC2XL3M4FN3R2YLRGUKFWVQGWBTDQ6O4JZO66V6VGPY64QWCJBWHDSX6
+      - key: CONTRIBUTION_VAULT_CONTRACT_ID
+        value: CBIHUJSOA4GSVSLFENQRJAPFUUWHPR5DXIU6H3HEMQU4XQU5EJQHL4MO
+      - key: REPUTATION_REGISTRY_CONTRACT_ID
+        value: CDVS7X47ICQQGRR67K4FL7DAL3XB3FSSAWKXWF4RIKJVWEHTJ6AXJTUC
+      - key: BID_ENGINE_CONTRACT_ID
+        value: CD3OE7WPUSSM7ZR2552CVNZH2O5LHV52UKHSPR3VYVG63CWHUOXNDM6P
+      - key: STELLAR_RPC_URL
+        value: https://soroban-testnet.stellar.org
+      - key: STELLAR_NETWORK_PASSPHRASE
+        value: Test SDF Network ; September 2015
+      - key: PORT
+        value: "3001"
+      - key: NODE_ENV
+        value: production
+
+  - type: worker
+    name: rotafi-keeper
+    env: node
+    rootDir: keeper
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: CIRCLE_FACTORY_CONTRACT_ID
+        value: CC2XL3M4FN3R2YLRGUKFWVQGWBTDQ6O4JZO66V6VGPY64QWCJBWHDSX6
+      - key: CONTRIBUTION_VAULT_CONTRACT_ID
+        value: CBIHUJSOA4GSVSLFENQRJAPFUUWHPR5DXIU6H3HEMQU4XQU5EJQHL4MO
+      - key: REPUTATION_REGISTRY_CONTRACT_ID
+        value: CDVS7X47ICQQGRR67K4FL7DAL3XB3FSSAWKXWF4RIKJVWEHTJ6AXJTUC
+      - key: BID_ENGINE_CONTRACT_ID
+        value: CD3OE7WPUSSM7ZR2552CVNZH2O5LHV52UKHSPR3VYVG63CWHUOXNDM6P
+      - key: STELLAR_RPC_URL
+        value: https://soroban-testnet.stellar.org
+      - key: STELLAR_NETWORK_PASSPHRASE
+        value: Test SDF Network ; September 2015
+      - key: KEEPER_SECRET
+        sync: false
+      - key: POLL_INTERVAL_MS
+        value: "30000"
+      - key: PORT
+        value: "3002"
+      - key: NODE_ENV
+        value: production
