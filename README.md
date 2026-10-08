@@ -79,6 +79,15 @@ cd docs && npm install && npm run dev
 
 ---
 
+## Maintainers
+
+| Name | GitHub | Role |
+|---|---|---|
+| Anubhav Singh | [@anumukul](https://github.com/anumukul) | Lead Maintainer |
+| Ayush | [@ayush99336](https://github.com/ayush99336) | Co-Maintainer |
+
+---
+
 ## License
 
 MIT © RotaFi Contributors
