@@ -11,6 +11,8 @@
   <a href="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-contracts.yml"><img src="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-contracts.yml/badge.svg" alt="Contracts" /></a>
   <a href="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-backend.yml"><img src="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-backend.yml/badge.svg" alt="Backend" /></a>
   <a href="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-keeper.yml"><img src="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/test-keeper.yml/badge.svg" alt="Keeper" /></a>
+  <a href="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/deploy-docs.yml"><img src="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/deploy-docs.yml/badge.svg" alt="Deploy Docs" /></a>
+  <a href="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/deploy-frontend.yml"><img src="https://github.com/RotaFi-Protocol/RotaFi/actions/workflows/deploy-frontend.yml/badge.svg" alt="Deploy Frontend" /></a>
 </p>
 
 ---
