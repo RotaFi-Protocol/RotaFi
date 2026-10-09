@@ -434,6 +434,35 @@ h1, h2, h3, h4, p { overflow-wrap: anywhere; }
   margin: var(--space-1) 0 0;
 }
 
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  font-size: 0.875rem;
+}
+
+.detail-field { min-width: 0; }
+
+.detail-field-label { color: var(--color-text-muted); }
+
+.detail-field-value { font-weight: 500; }
+
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.detail-status-active { color: var(--color-success); font-weight: 500; }
+.detail-status-setup { color: var(--color-warning); font-weight: 500; }
+
+.detail-actions { margin-top: var(--space-5); }
+
+@media (max-width: 480px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .detail-actions .btn { width: 100%; }
+}
+
 @media (max-width: 480px) {
   .bid-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
