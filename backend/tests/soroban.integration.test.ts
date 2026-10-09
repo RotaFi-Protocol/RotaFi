@@ -1,5 +1,11 @@
 import { ContractCallError } from '../src/services/sorobanRpc';
-import { TESTNET_ADDRESSES, integrationDescribe, testnetClient, testnetReader } from './helpers/testnet';
+import {
+  DEPLOYER_ADDRESS,
+  TESTNET_ADDRESSES,
+  integrationDescribe,
+  testnetClient,
+  testnetReader,
+} from './helpers/testnet';
 
 integrationDescribe('Soroban testnet RPC connectivity', () => {
   it('reports a healthy network with a recent ledger', async () => {
@@ -69,5 +75,37 @@ integrationDescribe('get_vault_state (Contribution Vault)', () => {
     if (result.ok) return;
 
     await expect(testnetReader().getVaultState()).rejects.toBeInstanceOf(ContractCallError);
+  });
+});
+
+integrationDescribe('get_reputation_rating (Reputation Registry)', () => {
+  const ANOTHER_ADDRESS = 'GDMIKKBWWCY355LJUHUDGFTO43AU74RUTSXUIZMAXVLRLEYN3OUR3PYV';
+
+  it('returns 100 for a member with no recorded history', async () => {
+    const rating = await testnetReader().getReputationRating(DEPLOYER_ADDRESS);
+
+    expect(Number.isInteger(rating)).toBe(true);
+    expect(rating).toBe(100);
+  });
+
+  it('keeps the rating within the 0-100 contract range', async () => {
+    const reader = testnetReader();
+
+    for (const address of [DEPLOYER_ADDRESS, ANOTHER_ADDRESS]) {
+      const rating = await reader.getReputationRating(address);
+      expect(rating).toBeGreaterThanOrEqual(0);
+      expect(rating).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('returns no score record for a member that has never joined', async () => {
+    const score = await testnetReader().getReputationScore(ANOTHER_ADDRESS);
+
+    // Either no record, or a well-formed record with zeroed counters.
+    if (score !== null) {
+      expect(score.address).toBe(ANOTHER_ADDRESS);
+      expect(score.circles_joined).toBe(0);
+      expect(score.circles_completed).toBe(0);
+    }
   });
 });
