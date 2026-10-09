@@ -225,3 +225,106 @@ fn test_reveal_without_commit_rejected() {
     reveal(&env, &vault, &outsider, &secret(&env, 5));
 }
 
+fn commit_and_reveal_all(env: &Env, vault: &Address, members: &[Address; 3]) {
+    for (i, member) in members.iter().enumerate() {
+        commit(env, vault, member, &secret(env, i as u8 + 1));
+    }
+    for (i, member) in members.iter().enumerate() {
+        reveal(env, vault, member, &secret(env, i as u8 + 1));
+    }
+}
+
+fn contribute_all(env: &Env, vault: &Address, token_addr: &Address, members: &[Address; 3]) {
+    for member in members.iter() {
+        env.mock_all_auths();
+        ContributionVaultClient::new(env, vault).contribute(member, token_addr);
+    }
+}
+
+#[test]
+fn test_lottery_draw_pays_exactly_one_member() {
+    let env = Env::default();
+    let (vault, _config, token_addr, members) = deploy_active_vault(&env);
+
+    commit_and_reveal_all(&env, &vault, &members);
+    contribute_all(&env, &vault, &token_addr, &members);
+
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+
+    let client = ContributionVaultClient::new(&env, &vault);
+    let mut paid = 0u32;
+    for member in members.iter() {
+        if client.get_member(member).unwrap().has_received_pot {
+            paid += 1;
+        }
+    }
+    assert_eq!(paid, 1);
+    assert_eq!(client.get_vault().current_round, 2);
+    assert!(client.get_round_seed(&1u32).is_some());
+}
+
+#[test]
+fn test_lottery_draw_leaves_only_collateral_in_vault() {
+    let env = Env::default();
+    let (vault, config, token_addr, members) = deploy_active_vault(&env);
+
+    commit_and_reveal_all(&env, &vault, &members);
+    contribute_all(&env, &vault, &token_addr, &members);
+
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+
+    let expected = config.min_collateral * config.member_cap as i128;
+    let balance = token::Client::new(&env, &token_addr).balance(&vault);
+    assert_eq!(balance, expected);
+}
+
+#[test]
+fn test_preview_matches_actual_draw() {
+    let env = Env::default();
+    let (vault, _config, token_addr, members) = deploy_active_vault(&env);
+
+    commit_and_reveal_all(&env, &vault, &members);
+    let preview = ContributionVaultClient::new(&env, &vault)
+        .preview_lottery_winner()
+        .unwrap();
+
+    contribute_all(&env, &vault, &token_addr, &members);
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+
+    let info = ContributionVaultClient::new(&env, &vault)
+        .get_member(&preview)
+        .unwrap();
+    assert!(info.has_received_pot);
+}
+
+#[test]
+#[should_panic(expected = "Lottery draw is not ready")]
+fn test_draw_requires_ready_phase() {
+    let env = Env::default();
+    let (vault, _config, token_addr, members) = deploy_active_vault(&env);
+
+    for (i, member) in members.iter().enumerate() {
+        commit(&env, &vault, member, &secret(&env, i as u8 + 1));
+    }
+    contribute_all(&env, &vault, &token_addr, &members);
+
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+}
+
+#[test]
+#[should_panic(expected = "Not all members paid and grace period not expired")]
+fn test_draw_requires_contributions() {
+    let env = Env::default();
+    let (vault, _config, token_addr, members) = deploy_active_vault(&env);
+
+    commit_and_reveal_all(&env, &vault, &members);
+
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+}
+
+
