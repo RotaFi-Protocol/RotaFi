@@ -265,6 +265,36 @@ impl ProtocolConfig {
         env.events()
             .publish((symbol_short!("own_rem"),), (approvers, owner));
     }
+
+    /// Updates the number of owner approvals required. Requires multisig
+    /// approval.
+    ///
+    /// # Panics
+    /// Panics if the new threshold is zero or exceeds the owner count.
+    #[allow(deprecated)]
+    pub fn set_threshold(env: Env, approvers: Vec<Address>, new_threshold: u32) {
+        require_multisig(&env, &approvers);
+
+        let owners = load_owners(&env);
+        assert!(new_threshold > 0, "Threshold must be positive");
+        assert!(
+            new_threshold <= owners.len(),
+            "Threshold cannot exceed owner count"
+        );
+
+        env.storage().instance().set(&THRESHOLD, &new_threshold);
+
+        env.events()
+            .publish((symbol_short!("thr_set"),), (approvers, new_threshold));
+    }
+
+    /// Returns the full multisig configuration.
+    pub fn get_multisig(env: Env) -> MultisigConfig {
+        MultisigConfig {
+            owners: load_owners(&env),
+            threshold: env.storage().instance().get(&THRESHOLD).unwrap_or(0),
+        }
+    }
 }
 
 impl ProtocolParams {
