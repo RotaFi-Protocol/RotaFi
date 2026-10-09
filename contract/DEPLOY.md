@@ -50,10 +50,33 @@ soroban contract deploy \
   --wasm target/wasm32-unknown-unknown/release/bid_engine.wasm \
   --source testnet-deployer \
   --network testnet
+
+soroban contract deploy \
+  --wasm target/wasm32-unknown-unknown/release/protocol_config.wasm \
+  --source testnet-deployer \
+  --network testnet
 ```
 
 Each deploy command outputs a contract ID. Save these for README and
 `DEPLOYED_ADDRESSES.md`.
+
+## Initialize the governance contract
+
+The protocol governance multisig is configured once during deployment:
+
+```bash
+soroban contract invoke \
+  --id <protocol-config-id> \
+  --source testnet-deployer \
+  --network testnet \
+  -- initialize \
+  --owners '["<owner-1>", "<owner-2>", "<owner-3>"]' \
+  --threshold 2 \
+  --params '{"min_member_cap":2,"max_member_cap":20,"min_collateral":"10000000","max_collateral":"1000000000","fee_bps":100,"slash_bps":5000}'
+```
+
+All later changes — including the contract upgrade itself — require the
+configured multisig threshold of owner approvals.
 
 ## Interact
 
@@ -81,4 +104,4 @@ soroban contract invoke \
 cargo test
 ```
 
-All four contract crates compile and pass tests with `cargo test`.
+All five contract crates compile and pass tests with `cargo test`.

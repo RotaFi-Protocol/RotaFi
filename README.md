@@ -45,13 +45,14 @@ RotaFi brings **ROSCA** (Rotating Savings and Credit Associations) — also know
 | Contribution Vault | [`CBIHUJSOA4GSVSLFENQRJAPFUUWHPR5DXIU6H3HEMQU4XQU5EJQHL4MO`](https://stellar.expert/explorer/testnet/contract/CBIHUJSOA4GSVSLFENQRJAPFUUWHPR5DXIU6H3HEMQU4XQU5EJQHL4MO) |
 | Reputation Registry | [`CDVS7X47ICQQGRR67K4FL7DAL3XB3FSSAWKXWF4RIKJVWEHTJ6AXJTUC`](https://stellar.expert/explorer/testnet/contract/CDVS7X47ICQQGRR67K4FL7DAL3XB3FSSAWKXWF4RIKJVWEHTJ6AXJTUC) |
 | Bid Engine | [`CD3OE7WPUSSM7ZR2552CVNZH2O5LHV52UKHSPR3VYVG63CWHUOXNDM6P`](https://stellar.expert/explorer/testnet/contract/CD3OE7WPUSSM7ZR2552CVNZH2O5LHV52UKHSPR3VYVG63CWHUOXNDM6P) |
+| Protocol Config (governance) | not yet deployed | — |
 
 ---
 
 ## Project Structure
 
 ```
-contract/     Soroban smart contracts (Rust)    — 4 crates, 48 unit tests
+contract/     Soroban smart contracts (Rust)    — 5 crates, 84 unit tests
 backend/      REST API (Express + TypeScript)    — validation, rate limiting, 23 tests
 keeper/       Background bot (Node.js)           — round advancement, slashing, 15 tests
 frontend/     Web UI (Next.js + TypeScript)      — circle browser, dashboard, wallet connect
