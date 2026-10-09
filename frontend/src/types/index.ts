@@ -64,3 +64,32 @@ export interface WalletState {
   publicKey: string | null;
   provider: WalletProvider;
 }
+
+export type CircleLifecycleState = 'Setup' | 'Active' | 'Completed';
+
+export interface RoundRecord {
+  round: number;
+  winner: string;
+  payout_amount: string;
+  completed_at: number;
+}
+
+export interface CircleLifecycle {
+  circleId: number;
+  tokenSymbol: string;
+  contributionAmount: string;
+  memberCap: number;
+  totalRounds: number;
+  currentRound: number;
+  membersPaidCurrentRound: number;
+  state: CircleLifecycleState;
+  joined: boolean;
+  hasReceivedPot: boolean;
+  history: RoundRecord[];
+}
+
+export interface LifecycleMember {
+  address: string;
+  has_received_pot: boolean;
+  rounds_contributed: number;
+}
