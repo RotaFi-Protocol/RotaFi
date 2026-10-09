@@ -236,3 +236,123 @@ fn first_two(env: &Env, owners: &Vec<Address>) -> Vec<Address> {
     approvers.push_back(owners.get(1).unwrap());
     approvers
 }
+
+#[test]
+fn test_set_fee_bps() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_fee_bps(&first_two(&env, &owners), &300u32);
+
+    assert_eq!(client.get_fee_bps(), 300);
+    assert_eq!(client.get_params().slash_bps, 5_000);
+}
+
+#[test]
+#[should_panic(expected = "fee_bps exceeds maximum")]
+fn test_set_fee_bps_above_max_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_fee_bps(&first_two(&env, &owners), &(MAX_FEE_BPS + 1));
+}
+
+#[test]
+fn test_set_slash_bps() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_slash_bps(&first_two(&env, &owners), &7_500u32);
+
+    assert_eq!(client.get_slash_bps(), 7_500);
+    assert_eq!(client.get_params().fee_bps, 100);
+}
+
+#[test]
+#[should_panic(expected = "slash_bps exceeds maximum")]
+fn test_set_slash_bps_above_max_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_slash_bps(&first_two(&env, &owners), &(MAX_SLASH_BPS + 1));
+}
+
+#[test]
+fn test_set_member_cap_bounds() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_member_cap_bounds(&first_two(&env, &owners), &5u32, &30u32);
+
+    assert!(client.check_member_cap(&5u32));
+    assert!(client.check_member_cap(&30u32));
+    assert!(!client.check_member_cap(&4u32));
+}
+
+#[test]
+#[should_panic(expected = "max_member_cap below min_member_cap")]
+fn test_set_member_cap_bounds_inverted_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_member_cap_bounds(&first_two(&env, &owners), &30u32, &5u32);
+}
+
+#[test]
+#[should_panic(expected = "min_member_cap below floor")]
+fn test_set_member_cap_bounds_below_floor_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_member_cap_bounds(&first_two(&env, &owners), &1u32, &5u32);
+}
+
+#[test]
+fn test_set_collateral_bounds() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_collateral_bounds(&first_two(&env, &owners), &500i128, &20_000i128);
+
+    assert!(client.check_collateral(&500i128));
+    assert!(client.check_collateral(&20_000i128));
+    assert!(!client.check_collateral(&499i128));
+}
+
+#[test]
+#[should_panic(expected = "max_collateral below min_collateral")]
+fn test_set_collateral_bounds_inverted_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_collateral_bounds(&first_two(&env, &owners), &20_000i128, &500i128);
+}
+
+#[test]
+#[should_panic(expected = "min_collateral cannot be negative")]
+fn test_set_collateral_bounds_negative_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_collateral_bounds(&first_two(&env, &owners), &-1i128, &500i128);
+}
