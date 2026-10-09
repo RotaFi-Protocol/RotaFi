@@ -408,4 +408,24 @@ preventing it (no on-chain scheme prevents owner collusion).
    predictable (M1) deters better than a slash that is unlimited but easily
    evaded (current state).
 
+## Threat matrix
+
+| ID | Threat | Attacker | Likelihood | Impact | Assumption violated | Mitigation |
+|---|---|---|---|---|---|---|
+| C1 | Winner-then-default | Rational member(s) | High | Loss of other members' pot | A1 | M1, M5 |
+| C2 | Organizer-fronts-defaulters | Organizer coalition | Medium | Mass bond capture | A1 | M1, M7 |
+| C3 | Lottery steering / stall + default | `N−1` coalition | Medium | Biased or delayed draws | A1 | M0c, M0d |
+| C4 | Governance capture → slash/upgrade | Multisig majority | Low | Total fund loss | A9 | M8 |
+| C5 | Enforcement-theatre | Any address | Medium | Unfair/unverified slashes | — | M2, M3 |
+| G1 | Repeat-slash drain | Any address | High | Bond wiped out of proportion | A3 | M2 |
+| G2 | Unbounded `slash_percent` | Any address | High | Full bond burn / overflow | A2 | M2 |
+| G3 | Late-payer front-running | Any address | Low–Med | Honest payer loses bond | — | M2 (one-shot) + priority/timelock |
+| G4 | Post-completion/stale slashing | Any address | Low | Post-lifecycle bond loss | A10 | M6 |
+| G5 | Zero-rate reputation pollution | Any address | Low | Reputation deflation | A6 | M2 (reject p=0), M5 |
+| G6 | Defaulter-cohort probing | Any address | Low | Targeted harassment | — | Monitoring UX, rate limits |
+
+No currently-shipped mitigation closes G1/G2; they are closed only by the
+recommended M2. C4 is out of scope for the slashing mechanism per se but
+documented because it is the highest-impact corruption path.
+
 <!-- END -->
