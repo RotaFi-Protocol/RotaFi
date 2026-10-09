@@ -189,3 +189,48 @@ of a previously observed winning strategy.
 **Tests.** `test_stale_round_rejected`, `test_next_round_accepted`,
 `test_commit_wrong_round_rejected`, `test_resolve_before_deadline_with_partial_reveals_rejected`
 and `test_resolve_after_deadline_with_partial_reveals_succeeds`.
+
+### F3. Sybil and non-member bidding
+
+**Naive behaviour.** `submit_bid` authenticated the caller but never checked
+whether they belonged to the circle. Any address that paid the gas could bid.
+An attacker controlling many addresses could:
+
+- guarantee that *some* controlled address bids the maximum discount, so an
+  adversarial set can always capture the pot,
+- probe the auction with many low offers to infer behaviour without cost, and
+- in a plaintext auction, use each extra address as an independent frontrunning
+  attempt.
+
+**Consequence.** The auction is not restricted to the people who actually
+contribute to the pot. A non-member can win an early pot and walk away with no
+standing in the circle, and one physical person can dominate the field with
+fresh addresses.
+
+**Mitigation.** `start_auction` is given an explicit `members` roster and
+stores it on-chain; `commit_bid`/`reveal_bid` require the caller to be on that
+roster (`Only circle members may bid`). One bid per member is enforced by both
+the commit map and the reveal map. Because the roster is the eligibility gate,
+Sybil addresses that are not on it cannot bid at all — the auction becomes an
+enrollment problem, not an auction problem.
+
+**Tests.** `test_non_member_commit_rejected`, `test_sybil_address_rejected`,
+`test_duplicate_commit_rejected`, `test_duplicate_reveal_rejected`.
+
+### F4. Auction-configuration frontrunning
+
+**Naive behaviour.** `start_auction` was fully permissionless. A third party
+could race the legitimate organizer and open the auction first with
+attacker-chosen parameters — for example an oversized `max_discount_bps` or a
+member set of the attacker's choosing — and there was nothing to distinguish
+the attacker's auction from the real one.
+
+**Consequence.** An attacker controls the auction that governs a real pot, which
+subsumes every other vector in this document: a fake roster (F3), an unbounded
+discount cap, and a deadline set to now.
+
+**Mitigation.** `AuctionConfig.organizer` must authorize
+(`config.organizer.require_auth()`), the roster length must equal `member_cap`,
+and the config is validated on-chain (`member_cap ≥ 2`, `min ≤ max`, `max ≤
+100%`, and a minimum reveal window). A raced auction therefore requires the
+organizer's own key.
