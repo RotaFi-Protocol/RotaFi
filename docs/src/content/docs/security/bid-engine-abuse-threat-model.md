@@ -433,3 +433,34 @@ of:
 5. The winner of any reveal set is independent of transaction ordering and
    storage iteration (M7), and resolvable in bounded ledger time even if some
    members withhold (M9).
+
+## Conclusion
+
+A sealed-bid auction only deserves the name if the bids are actually hidden
+while they are still being formed, fixed once the field is revealed, and settled
+by a rule no caller can time or steer. The original `BidEngine` satisfied none
+of those conditions: discounts were stored in cleartext, any address could bid
+at any time with any round number, and ties were decided by iteration order.
+
+The hardened contract closes the three abuse classes the issue asks about —
+frontrunning, round-boundary sniping, and Sybil bidding — with orthogonal
+controls: **commit-reveal** makes each bid hidden *and* binding (F1), **round
+and deadline binding** removes the boundary window and the round replay (F2,
+F5), and **roster gating** restricts bidding to the circle's own members (F3).
+Each vector is matched by an enforce-and-tested mitigation and a regression test,
+so the guarantees in this document are checked continuously rather than stated
+once.
+
+What remains is not auction mechanics but the trust placed around them: honest
+enrollment (O1), off-chain nonce hygiene (O2), the ledger clock (O3), and
+organizer availability (O4). Those are the natural input to the follow-up
+wiring with `ReputationRegistry` and `ProtocolConfig`.
+
+This threat model is a living document: when the P1/P2 items land, re-baseline
+the threat matrix and update this page in the same change.
+
+---
+
+*Maintainers: keep the function names and test names above in sync with
+`contract/bid-engine/src/lib.rs` and `contract/bid-engine/src/test.rs` whenever
+they change.*
