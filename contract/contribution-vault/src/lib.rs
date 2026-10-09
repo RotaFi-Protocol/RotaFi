@@ -466,27 +466,7 @@ impl ContributionVault {
         let eligible = eligible_members(&env, &members);
         assert!(!eligible.is_empty(), "No eligible members for draw");
 
-        let commitments: Map<(u32, Address), BytesN<32>> = env
-            .storage()
-            .persistent()
-            .get(&COMMITMENTS)
-            .unwrap_or(Map::new(&env));
-        let reveals: Map<(u32, Address), BytesN<32>> = env
-            .storage()
-            .persistent()
-            .get(&REVEALS)
-            .unwrap_or(Map::new(&env));
-
-        let mut openings: Vec<BytesN<32>> = Vec::new(&env);
-        for addr in eligible.iter() {
-            let key = (vault.current_round, addr.clone());
-            let opening = reveals
-                .get(key.clone())
-                .or_else(|| commitments.get(key))
-                .unwrap_or_else(|| panic!("Missing opening for eligible member"));
-            openings.push_back(opening);
-        }
-
+        let openings = collect_openings(&env, vault.current_round, &eligible);
         let seed = derive_seed(&env, &openings);
         let index = seed_to_index(&seed, eligible.len());
         let winner = eligible.get(index).unwrap();
@@ -611,6 +591,67 @@ impl ContributionVault {
             .unwrap_or(Map::new(&env));
         round_payments.get((round, member)).unwrap_or(false)
     }
+
+    /// Returns the commit-reveal state for the current round, if one exists.
+    pub fn get_round_randomness(env: Env) -> Option<RoundRandomness> {
+        let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        let rnd: Option<RoundRandomness> = env.storage().persistent().get(&RANDOMNESS);
+        match rnd {
+            Some(r) if r.round == vault.current_round => Some(r),
+            _ => None,
+        }
+    }
+
+    /// Returns a member's commitment for a given round.
+    pub fn get_commitment(env: Env, round: u32, member: Address) -> Option<BytesN<32>> {
+        let commitments: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&COMMITMENTS)
+            .unwrap_or(Map::new(&env));
+        commitments.get((round, member))
+    }
+
+    /// Returns a member's revealed secret for a given round.
+    pub fn get_reveal(env: Env, round: u32, member: Address) -> Option<BytesN<32>> {
+        let reveals: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&REVEALS)
+            .unwrap_or(Map::new(&env));
+        reveals.get((round, member))
+    }
+
+    /// Returns the finalised draw seed for a completed round.
+    pub fn get_round_seed(env: Env, round: u32) -> Option<BytesN<32>> {
+        let seeds: Map<u32, BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&ROUND_SEEDS)
+            .unwrap_or(Map::new(&env));
+        seeds.get(round)
+    }
+
+    /// Computes the winner the current openings would produce, without paying.
+    ///
+    /// Useful for clients and keepers to independently verify a draw before or
+    /// after it is executed on-chain.
+    pub fn preview_lottery_winner(env: Env) -> Option<Address> {
+        let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        let members: Map<Address, MemberInfo> = env
+            .storage()
+            .persistent()
+            .get(&MEMBERS)
+            .unwrap_or(Map::new(&env));
+        let eligible = eligible_members(&env, &members);
+        if eligible.is_empty() {
+            return None;
+        }
+        let openings = collect_openings(&env, vault.current_round, &eligible);
+        let seed = derive_seed(&env, &openings);
+        let index = seed_to_index(&seed, eligible.len());
+        eligible.get(index)
+    }
 }
 
 impl VaultConfig {
@@ -657,6 +698,35 @@ fn load_round_randomness(env: &Env, round: u32, eligible_count: u32) -> RoundRan
         Some(rnd) if rnd.round == round => rnd,
         _ => RoundRandomness::new(round, eligible_count),
     }
+}
+
+/// Builds the ordered list of draw openings for `eligible` members.
+///
+/// A member's revealed secret is used when available, otherwise their
+/// still-binding commitment stands in for it so a withheld reveal cannot
+/// prevent the draw from finalising.
+fn collect_openings(env: &Env, round: u32, eligible: &Vec<Address>) -> Vec<BytesN<32>> {
+    let commitments: Map<(u32, Address), BytesN<32>> = env
+        .storage()
+        .persistent()
+        .get(&COMMITMENTS)
+        .unwrap_or(Map::new(env));
+    let reveals: Map<(u32, Address), BytesN<32>> = env
+        .storage()
+        .persistent()
+        .get(&REVEALS)
+        .unwrap_or(Map::new(env));
+
+    let mut openings: Vec<BytesN<32>> = Vec::new(env);
+    for addr in eligible.iter() {
+        let key = (round, addr.clone());
+        let opening = reveals
+            .get(key.clone())
+            .or_else(|| commitments.get(key))
+            .unwrap_or_else(|| panic!("Missing opening for eligible member"));
+        openings.push_back(opening);
+    }
+    openings
 }
 
 #[cfg(test)]
