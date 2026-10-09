@@ -6,6 +6,7 @@ import WalletConnect from '@/components/WalletConnect';
 import PageHeader from '@/components/PageHeader';
 import { LoadingSpinner, EmptyState } from '@/components/States';
 import type { ReputationScore } from '@/types';
+import { formatAssetAmount } from '@/lib/assets';
 
 export default function ReputationPage() {
   const { wallet, isLoading: walletLoading, error: walletError, connect, disconnect } = useWallet();
@@ -67,7 +68,7 @@ export default function ReputationPage() {
                 <StatBox label="Circles Joined" value={String(score.circles_joined)} />
                 <StatBox label="Completed" value={String(score.circles_completed)} />
                 <StatBox label="Defaults" value={String(score.defaults)} />
-                <StatBox label="Total Slashed" value={`${(parseInt(score.total_slashed) / 1e7).toFixed(2)} USDC`} />
+                <StatBox label="Total Slashed" value={formatAssetAmount(score.total_slashed)} />
               </div>
             </div>
           )}

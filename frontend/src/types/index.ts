@@ -6,6 +6,16 @@ export interface Circle {
   contribution_amount: string;
   active: boolean;
   created_at?: number;
+  token_address?: string;
+  token_symbol?: string;
+}
+
+export interface Asset {
+  symbol: string;
+  name: string;
+  address: string;
+  /** SEP-41 token decimals from the Stellar asset contract. */
+  decimals: number;
 }
 
 export interface VaultState {
@@ -15,6 +25,8 @@ export interface VaultState {
     member_cap: number;
     total_rounds: number;
     min_collateral: string;
+    token_address?: string;
+    token_symbol?: string;
   };
   current_round: number;
   state: 'Setup' | 'Active' | 'Paused' | 'Completed';
