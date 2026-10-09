@@ -43,6 +43,7 @@ export default defineConfig({
           label: 'Guides',
           items: [
             { label: 'Running Locally', link: '/guides/running-locally' },
+            { label: 'Docker Compose', link: '/guides/docker-compose' },
             { label: 'Deploying Contracts', link: '/guides/deploying-contracts' },
             { label: 'Creating a Circle', link: '/guides/creating-a-circle' },
           ],
