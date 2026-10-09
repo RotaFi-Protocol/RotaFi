@@ -75,4 +75,43 @@ expected gain.
 
 [src-slash]: https://github.com/RotaFi-Protocol/RotaFi/blob/master/contract/contribution-vault/src/lib.rs
 
+## Collateral lifecycle
+
+The vault moves through `Setup → Active → Completed` (with `Paused` reserved).
+Collateral is only accepted during `Setup` and only mutated during `Active`.
+
+| Step | Function | Collateral effect | Round effect |
+|---|---|---|---|
+| Join | `join_vault` | `+min_collateral` transferred in, stored in `MemberInfo.collateral_staked` | Vault auto-activates when `member_count == member_cap` |
+| Contribute | `contribute` | None | Marks `(round, member)` paid, increments `members_paid_current_round` |
+| Advance (happy) | `release_payout` / `release_lottery_payout` | None | Increments `current_round` once all paid or grace expires |
+| Default | `slash_default` | `collateral_staked -= collateral_staked * slash_percent / 100`; `rounds_missed += 1` | **No advancement** — stays on the same round |
+
+### The slashing state machine
+
+```
+                    all paid
+   Active round N ───────────────► round N+1
+        │
+        │ round_length + grace_period elapse, member unpaid
+        ▼
+   slash_default(member, p)          (repeatable until the round advances)
+        │  requires: !has_paid(member, round N)
+        │            grace_ended == true
+        ▼
+   collateral_staked -= stake * p / 100
+   rounds_missed += 1
+```
+
+Two properties fall directly out of this design and drive the rest of the
+analysis:
+
+1. **Enforcement is permissionless.** `slash_default` authenticates nothing
+   about its caller. This is deliberate — it prevents an organizer from
+   censoring enforcement — but it also means the *parameters and frequency* of
+   a slash are attacker-controllable.
+2. **A slash does not end the round.** Advancing the round (which clears the
+   "unpaid" condition) is a separate call, so the default condition can persist
+   across many `slash_default` calls.
+
 <!-- END -->
