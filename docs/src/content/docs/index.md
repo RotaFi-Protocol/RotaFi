@@ -24,5 +24,6 @@ Explore the documentation:
 - [Architecture](/overview/architecture/) — System design and components
 - [Contracts](/contracts/circle-factory/) — Smart contract API reference
 - [Security](/security/collateral-slashing-threat-model/) — Collateral slashing threat model
+- [Bid Engine Threat Model](/security/bid-engine-abuse-threat-model/) — Auction frontrunning, sniping and Sybil analysis
 - [Backend API](/api/backend/) — REST API documentation
 - [Deploying Contracts](/guides/deploying-contracts/) — Deploy your own instance

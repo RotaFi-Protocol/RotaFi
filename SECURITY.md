@@ -37,6 +37,11 @@ collusion model of the collateral-slashing mechanism, see the
 [Collateral Slashing Threat Model](docs/src/content/docs/security/collateral-slashing-threat-model.md)
 and the published [docs site](https://rotafi-protocol.github.io/RotaFi/security/collateral-slashing-threat-model/).
 
+For the frontrunning, round-boundary sniping and Sybil analysis of the sealed-bid
+auction, and the commit-reveal mitigations now enforced on-chain, see the
+[Bid Engine Abuse Threat Model](docs/src/content/docs/security/bid-engine-abuse-threat-model.md)
+and the published [docs site](https://rotafi-protocol.github.io/RotaFi/security/bid-engine-abuse-threat-model/).
+
 **Out of scope**
 
 - Social engineering attacks

@@ -36,6 +36,7 @@ export default defineConfig({
           label: 'Security',
           items: [
             { label: 'Collateral Slashing Threat Model', link: '/security/collateral-slashing-threat-model' },
+            { label: 'Bid Engine Threat Model', link: '/security/bid-engine-abuse-threat-model' },
           ],
         },
         {
