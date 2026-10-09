@@ -561,42 +561,10 @@ pre, code {
 
 .state .btn { margin-top: var(--space-4); }
 
-@media (max-width: 480px) {
-  .detail-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-  }
-
-  .detail-actions .btn { width: 100%; }
-
-  .rating-circle { width: 104px; height: 104px; }
-
-  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 480px) {
-  .bid-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-
-  .wallet-actions { width: 100%; }
-
-  .wallet-actions .btn {
-    flex: 1 1 0;
-    min-width: 0;
-    padding: 0 var(--space-2);
-  }
-}
-
 .circle-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: var(--space-4);
-}
-
-@media (max-width: 640px) {
-  .circle-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-  }
 }
 
 .visually-hidden {
@@ -631,6 +599,34 @@ pre, code {
   }
 
   .page-header .wallet-connect { width: 100%; }
+
+  .circle-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
+@media (max-width: 480px) {
+  .bid-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .wallet-actions { width: 100%; }
+
+  .wallet-actions .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 var(--space-2);
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .detail-actions .btn { width: 100%; }
+
+  .rating-circle { width: 104px; height: 104px; }
+
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 400px) {
