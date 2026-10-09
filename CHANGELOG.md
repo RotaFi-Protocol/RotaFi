@@ -9,6 +9,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+#### Contracts
+- Verifiable commit-reveal lottery randomness in `ContributionVault` — members commit sealed secrets per round, reveal them after all commitments close, and the pot is drawn from a seed mixing the openings with ledger sequence, close time and network id (`commit_randomness`, `reveal_randomness`, `release_lottery_payout`)
+- Partial-reveal fallback after the reveal window expires so funds can never be locked by a non-revealing member
+- Lottery introspection views (`get_round_randomness`, `get_commitment`, `get_reveal`, `get_round_seed`, `preview_lottery_winner`) for off-chain draw verification
+
+#### Keeper
+- Dependency-free commit-reveal helpers reproducing the on-chain digest, seed derivation, strkey-aware address ordering and winner index (`src/randomness.ts`)
+- `determinePayoutRecipient` now derives the verifiable lottery winner from the round's openings and ledger entropy instead of returning a placeholder
+
 #### Backend
 - Soroban RPC client (`src/services/sorobanRpc.ts`) with read-only contract simulation, typed `ContractCallError` and health checks
 - `ChainReader` for reading `get_circle`, `circle_count`, `get_vault`, `get_score` and `get_rating` from the deployed testnet contracts
