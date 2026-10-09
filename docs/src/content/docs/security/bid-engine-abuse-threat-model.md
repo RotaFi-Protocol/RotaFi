@@ -344,3 +344,26 @@ addresses is fixed at `start_auction`. Combined with M1 it also stops Sybil
 *observation* — a Sybil gains no informational edge by creating addresses,
 because the field is opaque to them just as it is to everyone else until the
 commit phase closes.
+
+## Threat matrix
+
+| ID | Threat | Attacker | Likelihood | Impact | Assumption violated | Mitigation |
+|---|---|---|---|---|---|---|
+| F1 | Frontrunning sealed bids | Any bidder / observer | High | Auction lost to timing, not value | A5 | M1 |
+| F2 | Bid sniping at round boundaries | Any bidder | High | Pot captured at zero price discovery | A8 | M2, M3, M4 |
+| F3 | Sybil / non-member bidding | Attacker with many addresses | Medium | Non-members win, field dominated | A7 | M5 |
+| F4 | Auction-configuration frontrunning | Third party | Medium | Attacker-controlled auction | A4 | M6 |
+| F5 | Round replay / stale bids | Any bidder | Low | Replayed rounds and old strategies | A8 | M2, M3 |
+| F6 | Non-deterministic tie-break | Any bidder | Low | Arbitrary, unordered winner | A8 | M7 |
+| F7 | Reserve bypass / degenerate winner | Any bidder | Low | 0-value win or failed resolution | A6 | M8 |
+| F8 | Reveal-lock griefing | Any roster member | Low | Payout stall | A8 | M4, M9 |
+
+F1 and F2 are the dominant threats the issue asks about, and they are the
+highest-likelihood rows in the matrix: they require only one rational bidder,
+no key compromise, and no collusion. They are the rows whose named mitigations
+(M1 commit-reveal, M4 deadlines) are the heart of the hardening.
+
+No currently-shipped control fully closes the *enrollment* problem (A1/O1): an
+organizer who assembles a roster entirely of their own addresses can still
+poison it, but that is a membership problem, not an auction problem, and is the
+subject of the collateral-slashing model and reputation registry.
