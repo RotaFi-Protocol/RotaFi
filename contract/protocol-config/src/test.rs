@@ -108,3 +108,131 @@ fn test_initialize_threshold_exceeds_owners_panics() {
     let owners = generate_owners(&env, 2);
     ProtocolConfigClient::new(&env, &contract_id).initialize(&owners, &3u32, &sample_params());
 }
+
+#[test]
+fn test_check_member_cap() {
+    let env = Env::default();
+    let (contract_id, _) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    assert!(client.check_member_cap(&2u32));
+    assert!(client.check_member_cap(&20u32));
+    assert!(!client.check_member_cap(&1u32));
+    assert!(!client.check_member_cap(&21u32));
+}
+
+#[test]
+fn test_check_collateral() {
+    let env = Env::default();
+    let (contract_id, _) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    assert!(client.check_collateral(&100i128));
+    assert!(client.check_collateral(&10_000i128));
+    assert!(!client.check_collateral(&99i128));
+    assert!(!client.check_collateral(&10_001i128));
+}
+
+#[test]
+fn test_get_fee_and_slash() {
+    let env = Env::default();
+    let (contract_id, _) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    assert_eq!(client.get_fee_bps(), 100);
+    assert_eq!(client.get_slash_bps(), 5_000);
+}
+
+#[test]
+fn test_update_params() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let approvers = first_two(&env, &owners);
+    let updated = ProtocolParams {
+        fee_bps: 250,
+        ..sample_params()
+    };
+    client.update_params(&approvers, &updated);
+
+    assert_eq!(client.get_params().fee_bps, 250);
+}
+
+#[test]
+#[should_panic(expected = "Insufficient multisig approvals")]
+fn test_update_params_insufficient_approvals() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 3);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let mut approvers = Vec::new(&env);
+    approvers.push_back(owners.get(0).unwrap());
+    client.update_params(&approvers, &sample_params());
+}
+
+#[test]
+#[should_panic(expected = "Insufficient multisig approvals")]
+fn test_update_params_duplicate_approvals_rejected() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let mut approvers = Vec::new(&env);
+    let owner = owners.get(0).unwrap();
+    approvers.push_back(owner.clone());
+    approvers.push_back(owner);
+    client.update_params(&approvers, &sample_params());
+}
+
+#[test]
+#[should_panic(expected = "Approver is not an owner")]
+fn test_update_params_non_owner_rejected() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 1);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let mut approvers = Vec::new(&env);
+    approvers.push_back(owners.get(0).unwrap());
+    approvers.push_back(Address::generate(&env));
+    client.update_params(&approvers, &sample_params());
+}
+
+#[test]
+#[should_panic(expected = "max_member_cap below min_member_cap")]
+fn test_update_params_invalid_rejected() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let approvers = first_two(&env, &owners);
+    let invalid = ProtocolParams {
+        min_member_cap: 10,
+        max_member_cap: 5,
+        ..sample_params()
+    };
+    client.update_params(&approvers, &invalid);
+}
+
+#[test]
+#[should_panic]
+fn test_update_params_requires_authorization() {
+    let env = Env::default();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let approvers = first_two(&env, &owners);
+    client.update_params(&approvers, &sample_params());
+}
+
+fn first_two(env: &Env, owners: &Vec<Address>) -> Vec<Address> {
+    let mut approvers = Vec::new(env);
+    approvers.push_back(owners.get(0).unwrap());
+    approvers.push_back(owners.get(1).unwrap());
+    approvers
+}
