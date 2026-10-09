@@ -1,19 +1,38 @@
 import { config } from '../config';
+import { ChainReader, createChainReader } from './chainReader';
 
 // In-memory storage for API state (cache for contract reads)
 const memberCache = new Map<string, any>();
 const circleCache = new Map<number, any>();
 const bidCache = new Map<string, any>();
 
+let liveReader: ChainReader | null = null;
+
+function getLiveReader(): ChainReader {
+  if (!liveReader) {
+    liveReader = createChainReader();
+  }
+  return liveReader;
+}
+
 export async function getCircleCount(): Promise<number> {
+  if (config.soroban.liveReads) {
+    return getLiveReader().getCircleCount();
+  }
   return circleCache.size;
 }
 
 export async function getCircle(id: number): Promise<any> {
+  if (config.soroban.liveReads) {
+    return getLiveReader().getCircle(id);
+  }
   return circleCache.get(id) || null;
 }
 
 export async function getVaultState(): Promise<any> {
+  if (config.soroban.liveReads) {
+    return getLiveReader().getVaultState();
+  }
   return {
     config: {
       circle_id: 1,
@@ -47,10 +66,16 @@ export async function allPaid(): Promise<boolean> {
 }
 
 export async function getReputationScore(memberAddress: string): Promise<any> {
+  if (config.soroban.liveReads) {
+    return getLiveReader().getReputationScore(memberAddress);
+  }
   return memberCache.get(memberAddress)?.reputation || null;
 }
 
 export async function getReputationRating(memberAddress: string): Promise<number> {
+  if (config.soroban.liveReads) {
+    return getLiveReader().getReputationRating(memberAddress);
+  }
   const rep = memberCache.get(memberAddress)?.reputation;
   if (!rep) return 100;
   const total = (rep.circles_completed || 0) + (rep.defaults || 0);
