@@ -1,5 +1,6 @@
 import { createCorrelationId, withCorrelation } from './logger';
 import { VaultState } from './types';
+import { determineWinner, LotteryDrawInput } from './randomness';
 
 export interface RoundAdvancementResult {
   advanced: boolean;
@@ -109,13 +110,20 @@ export function isCircleComplete(vault: VaultState): boolean {
 }
 
 /**
- * Determines the next payout recipient based on the configured payout method.
+ * Determines the lottery payout recipient for a round.
+ *
+ * The winner is not chosen here: it is derived on-chain from the members'
+ * commit-reveal openings mixed with ledger data. This helper reproduces the
+ * contract's derivation so the keeper can verify (or predict) the outcome
+ * independently of the transaction that finalised the draw.
  */
 export function determinePayoutRecipient(
   vault: VaultState,
-  _randomSeed?: number,
+  draw: LotteryDrawInput,
 ): string | null {
-  // In production, this would consult the payout order from the contract.
-  // For now, return the first active member who hasn't received the pot.
-  return null; // Placeholder — actual winner determined by contract/circle config
+  if (vault.member_count === 0) return null;
+  if (draw.openings.length !== draw.eligible.length) {
+    return null;
+  }
+  return determineWinner(draw);
 }
