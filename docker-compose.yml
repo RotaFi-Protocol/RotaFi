@@ -72,6 +72,35 @@ services:
       - rotafi
     restart: unless-stopped
 
+  # ---------------------------------------------------------------- keeper
+  keeper:
+    build:
+      context: ./keeper
+      target: development
+    container_name: rotafi-keeper
+    command: ["npm", "run", "dev"]
+    environment:
+      NODE_ENV: development
+      SOROBAN_RPC_URL: http://soroban:8000/rpc
+      CONTRIBUTION_VAULT_ADDRESS: ${CONTRIBUTION_VAULT_ADDRESS:-}
+      POLL_INTERVAL_MS: ${POLL_INTERVAL_MS:-30000}
+      KEEPER_HEALTH_PORT: "3002"
+    volumes:
+      - ./keeper:/app
+      - keeper-node-modules:/app/node_modules
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3002/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    depends_on:
+      soroban:
+        condition: service_healthy
+    networks:
+      - rotafi
+    restart: unless-stopped
+
 networks:
   rotafi:
     driver: bridge
@@ -79,3 +108,4 @@ networks:
 volumes:
   soroban-data:
   backend-node-modules:
+  keeper-node-modules:
