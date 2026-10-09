@@ -234,3 +234,57 @@ discount cap, and a deadline set to now.
 and the config is validated on-chain (`member_cap ≥ 2`, `min ≤ max`, `max ≤
 100%`, and a minimum reveal window). A raced auction therefore requires the
 organizer's own key.
+
+### F5. Round replay and stale bids
+
+**Naive behaviour.** `BIDS` was cleared only by `resolve_auction`, and there was
+no record of which round had been settled. If an auction was never resolved,
+bids could leak into the next round; a resolved-round auction could be re-opened.
+
+**Mitigation.** `start_auction` clears both `BIDS` and `COMMITS` and requires
+`round > LAST_ROUND`; `resolve_auction` records `LAST_ROUND` and clears both
+maps. Re-opening a past round, or carrying bids across rounds, is impossible.
+**Test.** `test_bids_cleared_after_resolution`.
+
+### F6. Non-deterministic winner selection
+
+**Naive behaviour.** The original resolution iterated the `BIDS` map and kept a
+bid only on a *strict* increase in discount. With equal discounts the first
+encountered entry won, and `Map` iteration order is not a caller-independent
+order — the winner of a tie was effectively whichever entry the VM happened to
+return.
+
+**Consequence.** In a tie the result is arbitrary and possibly exploitable by
+ordering, violating the determinism that members need to verify a fair auction.
+
+**Mitigation.** `resolve_auction` breaks ties in favour of the lexicographically
+smallest member address (`bid.member < current`), a rule that depends only on
+the bids, never on storage order. **Test:** `test_resolve_deterministic_tie_break`.
+
+### F7. Reserve bypass and degenerate winners
+
+**Naive behaviour.** Any `discount_bps ≥ 0` was accepted, there was no reserve,
+and zero bids made `resolve_auction` fail with a discouraged `unwrap`. A
+bidder could win with a 0% "discount" (no value to anybody) or the auction
+could fail to produce any result at all.
+
+**Mitigation.** `min_discount_bps` sets a reserve and `max_discount_bps` a
+ceiling, both checked on reveal; `resolve_auction` requires at least one valid
+bid (`No valid bids to resolve`). **Tests:**
+`test_discount_below_reserve_rejected`, `test_discount_above_max_rejected`,
+`test_max_discount_above_denominator_rejected`,
+`test_resolve_with_no_valid_bids_rejected`.
+
+### F8. Reveal-lock griefing
+
+**Naive behaviour (hypothetical plaintext version).** A member could last-second
+withhold their bid, or in any commit-reveal auction refuse to reveal, to stall
+the payout and frustrate the round.
+
+**Consequence.** A single non-cooperating bidder blocks the pot.
+
+**Mitigation.** Resolution is permitted once every commit has been revealed *or*
+the reveal deadline passes, so a withheld reveal (or a completely empty commit
+phase) costs the auction its liveness only until `reveal_deadline` — never
+forever. **Tests:** `test_resolve_after_deadline_with_partial_reveals_succeeds`,
+`test_resolve_with_no_valid_bids_rejected`.
