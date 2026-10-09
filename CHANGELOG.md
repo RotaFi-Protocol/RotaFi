@@ -10,6 +10,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 #### Contracts
+- Commit-reveal sealed bids in `BidEngine`: `submit_bid`/`resolve_auction(member_cap)` replaced by `commit_bid`/`reveal_bid`/`resolve_auction()` so discounts stay hidden until the commit phase closes and are bound to `sha256(contract ‖ member ‖ round ‖ discount ‖ nonce)`
+- Round, roster and deadline binding in `BidEngine`: auctions are tied to a single round (`round > LAST_ROUND`), restricted to an explicit member roster, and bounded by `commit_deadline`/`reveal_deadline` with a minimum reveal window
+- Deterministic `BidEngine` resolution: highest revealed discount wins with ties broken to the lexicographically smallest address, a `min_discount_bps` reserve, stored-`member_cap` pro-rata split, and permissionless time-boxed settling that tolerates partial reveals
+- Organizer authorization and parameter validation in `BidEngine.start_auction` so a third party cannot race the legitimate auction configuration (threat vectors F1–F8 in the new threat model)
 - Verifiable commit-reveal lottery randomness in `ContributionVault` — members commit sealed secrets per round, reveal them after all commitments close, and the pot is drawn from a seed mixing the openings with ledger sequence, close time and network id (`commit_randomness`, `reveal_randomness`, `release_lottery_payout`)
 - Partial-reveal fallback after the reveal window expires so funds can never be locked by a non-revealing member
 - Lottery introspection views (`get_round_randomness`, `get_commitment`, `get_reveal`, `get_round_seed`, `preview_lottery_winner`) for off-chain draw verification
@@ -34,6 +38,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `Makefile` shortcuts and `docker/.env.example` for the local stack
 
 #### Docs
+- Bid engine abuse threat model covering sealed-bid frontrunning, round-boundary bid sniping and Sybil/non-member bidding, with abuse vectors F1–F8, security assumptions A1–A8, on-chain mitigations M1–M9, a threat matrix, residual risks O1–O6 and a hardening backlog, all mapped to the enforced commit-reveal auction (`docs/src/content/docs/security/bid-engine-abuse-threat-model.md`)
 - Collateral slashing threat model covering security assumptions, economic incentives and default-profitability analysis, griefing attack vectors (repeat/unbounded slashing, late-payer front-running, stale-round slashing), collusion scenarios (winner-then-default, organizer-fronted defaulters, governance capture), mitigation strategies, a threat matrix, and a prioritized hardening backlog (`docs/src/content/docs/security/collateral-slashing-threat-model.md`)
 
 ---
