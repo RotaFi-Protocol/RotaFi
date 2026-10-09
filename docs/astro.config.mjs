@@ -33,6 +33,12 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Security',
+          items: [
+            { label: 'Collateral Slashing Threat Model', link: '/security/collateral-slashing-threat-model' },
+          ],
+        },
+        {
           label: 'API Reference',
           items: [
             { label: 'Backend API', link: '/api/backend' },

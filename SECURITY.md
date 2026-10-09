@@ -32,6 +32,11 @@ We will not take legal action against researchers who report vulnerabilities in 
 - Keeper bot (unauthorized fund movement)
 - Backend API (authentication bypass, injection)
 
+For the current security assumptions, economic incentives, griefing vectors and
+collusion model of the collateral-slashing mechanism, see the
+[Collateral Slashing Threat Model](docs/src/content/docs/security/collateral-slashing-threat-model.md)
+and the published [docs site](https://rotafi-protocol.github.io/RotaFi/security/collateral-slashing-threat-model/).
+
 **Out of scope**
 
 - Social engineering attacks
