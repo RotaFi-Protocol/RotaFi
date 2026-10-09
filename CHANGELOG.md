@@ -5,6 +5,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+#### Local development (Docker Compose)
+- `docker-compose.yml` running the Stellar Quickstart Soroban sandbox, backend, keeper, and frontend together
+- Health checks for every service and source bind mounts for hot reload
+- Optional `contracts` profile that builds and deploys the Soroban contracts to the local sandbox
+- Development Dockerfiles for the backend, keeper, and frontend
+- Optional keeper HTTP health endpoint (`KEEPER_HEALTH_PORT`)
+- `Makefile` shortcuts and `docker/.env.example` for the local stack
+
+---
+
 ## [0.1.0] — 2026-10-01
 
 ### Added
