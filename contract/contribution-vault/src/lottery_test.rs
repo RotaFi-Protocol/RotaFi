@@ -2,8 +2,8 @@
 
 use super::*;
 use crate::randomness::{commitment_digest, LotteryPhase};
-use soroban_sdk::testutils::Address as _;
-use soroban_sdk::{token, Address, BytesN, Env};
+use soroban_sdk::testutils::{Address as _, Ledger as _};
+use soroban_sdk::{token, Address, BytesN, Env, Vec};
 
 fn deploy_active_vault(env: &Env) -> (Address, VaultConfig, Address, [Address; 3]) {
     let vault = env.register(ContributionVault, ());
@@ -325,6 +325,103 @@ fn test_draw_requires_contributions() {
 
     env.mock_all_auths();
     ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+}
+
+#[test]
+fn test_reveal_deadline_allows_partial_reveal_draw() {
+    let env = Env::default();
+    let (vault, _config, token_addr, members) = deploy_active_vault(&env);
+
+    for (i, member) in members.iter().enumerate() {
+        commit(&env, &vault, member, &secret(&env, i as u8 + 1));
+    }
+    reveal(&env, &vault, &members[0], &secret(&env, 1));
+
+    let rnd = ContributionVaultClient::new(&env, &vault)
+        .get_round_randomness()
+        .unwrap();
+    env.ledger().set_timestamp(rnd.reveal_deadline + 1);
+
+    contribute_all(&env, &vault, &token_addr, &members);
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+
+    let client = ContributionVaultClient::new(&env, &vault);
+    let mut paid = 0u32;
+    for member in members.iter() {
+        if client.get_member(member).unwrap().has_received_pot {
+            paid += 1;
+        }
+    }
+    assert_eq!(paid, 1);
+}
+
+#[test]
+#[should_panic(expected = "Lottery draw is not ready")]
+fn test_draw_before_deadline_with_partial_reveals_rejected() {
+    let env = Env::default();
+    let (vault, _config, token_addr, members) = deploy_active_vault(&env);
+
+    for (i, member) in members.iter().enumerate() {
+        commit(&env, &vault, member, &secret(&env, i as u8 + 1));
+    }
+    reveal(&env, &vault, &members[0], &secret(&env, 1));
+    contribute_all(&env, &vault, &token_addr, &members);
+
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+}
+
+fn remaining_members(env: &Env, vault: &Address, members: &[Address; 3]) -> Vec<Address> {
+    let client = ContributionVaultClient::new(env, vault);
+    let mut remaining = Vec::new(env);
+    for member in members.iter() {
+        let info = client.get_member(member).unwrap();
+        if !info.has_received_pot {
+            remaining.push_back(member.clone());
+        }
+    }
+    remaining
+}
+
+#[test]
+fn test_full_cycle_every_member_receives_once() {
+    let env = Env::default();
+    let (vault, _config, token_addr, members) = deploy_active_vault(&env);
+
+    let client = ContributionVaultClient::new(&env, &vault);
+    for round in 1..=3u32 {
+        let remaining = remaining_members(&env, &vault, &members);
+        for (i, member) in remaining.iter().enumerate() {
+            commit(&env, &vault, &member, &secret(&env, round as u8 + i as u8));
+        }
+        for (i, member) in remaining.iter().enumerate() {
+            reveal(&env, &vault, &member, &secret(&env, round as u8 + i as u8));
+        }
+        contribute_all(&env, &vault, &token_addr, &members);
+        env.mock_all_auths();
+        ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+    }
+
+    let vault_state = client.get_vault();
+    assert_eq!(vault_state.state, VaultState::Completed);
+    for member in members.iter() {
+        assert!(client.get_member(member).unwrap().has_received_pot);
+    }
+}
+
+#[test]
+fn test_commitment_is_bound_to_member_and_round() {
+    let env = Env::default();
+    let (vault, _config, _token, members) = deploy_active_vault(&env);
+
+    let s = secret(&env, 11);
+    let m0_r1 = digest(&env, &vault, &members[0], 1, &s);
+    let m1_r1 = digest(&env, &vault, &members[1], 1, &s);
+    let m0_r2 = digest(&env, &vault, &members[0], 2, &s);
+
+    assert_ne!(m0_r1, m1_r1, "digest must bind to the member");
+    assert_ne!(m0_r1, m0_r2, "digest must bind to the round");
 }
 
 
