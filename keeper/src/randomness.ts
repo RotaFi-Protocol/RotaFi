@@ -23,7 +23,11 @@ export interface LedgerEntropy {
 export interface LotteryDrawInput {
   /** Addresses eligible for the pot, order is irrelevant. */
   eligible: string[];
-  /** 32-byte openings (reveals, else commitments) as hex, per eligible member. */
+  /**
+   * 32-byte openings (reveals, else commitments) as hex. Must be aligned to
+   * `sortAddresses(eligible)` — the same deterministic order the contract
+   * derives before hashing.
+   */
   openings: string[];
   /** Ledger state that cannot be predicted before the draw ledger closes. */
   ledger: LedgerEntropy;
