@@ -731,3 +731,6 @@ fn collect_openings(env: &Env, round: u32, eligible: &Vec<Address>) -> Vec<Bytes
 
 #[cfg(test)]
 mod test;
+
+#[cfg(test)]
+mod lottery_test;
