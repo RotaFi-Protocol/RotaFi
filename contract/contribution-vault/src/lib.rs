@@ -8,7 +8,8 @@ use soroban_sdk::{
 pub mod randomness;
 
 use randomness::{
-    sorted_addresses, LotteryPhase, RoundRandomness, COMMITMENTS, RANDOMNESS, REVEAL_WINDOW_SECONDS,
+    commitment_digest, sorted_addresses, LotteryPhase, RoundRandomness, COMMITMENTS, RANDOMNESS,
+    REVEALS, REVEAL_WINDOW_SECONDS,
 };
 
 const VAULT: Symbol = symbol_short!("vault");
@@ -277,6 +278,62 @@ impl ContributionVault {
         env.events().publish(
             (symbol_short!("lot_cmt"),),
             (vault.current_round, member, commitment),
+        );
+    }
+
+    /// Reveals a member's previously committed secret for the current round.
+    ///
+    /// The contract recomputes the commitment digest and rejects any secret
+    /// that does not match, so members cannot change their contribution after
+    /// seeing anybody else's opening.
+    ///
+    /// # Panics
+    /// Panics if the reveal phase is not open, the member never committed, the
+    /// secret does not match, or the member already revealed.
+    pub fn reveal_randomness(env: Env, member: Address, secret: BytesN<32>) {
+        member.require_auth();
+        let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        assert!(vault.state == VaultState::Active, "Vault is not active");
+
+        let mut rnd = load_round_randomness(&env, vault.current_round, 0);
+        assert!(
+            rnd.phase == LotteryPhase::Revealing,
+            "Reveal phase is not open"
+        );
+
+        let key = (vault.current_round, member.clone());
+        let commitments: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&COMMITMENTS)
+            .unwrap_or(Map::new(&env));
+        let commitment = commitments
+            .get(key.clone())
+            .unwrap_or_else(|| panic!("Member has not committed"));
+
+        let expected = commitment_digest(&env, &member, vault.current_round, &secret);
+        assert!(expected == commitment, "Reveal does not match commitment");
+
+        let mut reveals: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&REVEALS)
+            .unwrap_or(Map::new(&env));
+        assert!(!reveals.contains_key(key.clone()), "Member already revealed");
+
+        reveals.set(key, secret.clone());
+        rnd.reveal_count += 1;
+
+        if rnd.reveal_count >= rnd.eligible_count {
+            rnd.phase = LotteryPhase::Ready;
+        }
+
+        env.storage().persistent().set(&REVEALS, &reveals);
+        env.storage().persistent().set(&RANDOMNESS, &rnd);
+
+        env.events().publish(
+            (symbol_short!("lot_rev"),),
+            (vault.current_round, member, secret),
         );
     }
 
