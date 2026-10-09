@@ -117,3 +117,42 @@ analysis:
 2. **Resolution is time-boxed and permissionless.** Any address may settle the
    auction, but only after every commit has been revealed or the reveal deadline
    has passed, so no caller can time the settle to a sniper.
+
+## Abuse vectors
+
+An abuse vector is a way for an adversary to gain the pot, or to deny a fair
+auction, at the expense of honest bidders. Each vector below states the naive
+behaviour that enabled it, the consequence, and the mitigation that is now
+enforced.
+
+### F1. Frontrunning sealed bids
+
+**Naive behaviour.** The previous `submit_bid(member, discount_bps, round)`
+wrote the discount straight into the persistent `BIDS` map, and `get_all_bids()`
+returned every entry while the auction was still open. A bidder — or any
+observer — could therefore:
+
+- read the current highest discount and submit `highest + 1` (or the maximum)
+  in the very next ledger, or
+- wait until the field was visible and then choose whether and how much to bid.
+
+Because the "sealed" bid was plaintext, the private-value auction collapsed into
+an open one, and only the bidder willing to submit last at the maximum discount
+could reliably win. Honest bidders who revealed their true value first were
+systematically beaten.
+
+**Consequence.** The winner is not the member who values the pot most, but the
+member who best exploits timing — the classic *frontrunning* failure. The
+redistributed discount (`discount_per_member`) is also affected because it is
+derived from the winning (manipulated) discount.
+
+**Mitigation.** `commit_bid` stores only
+`sha256(contract ‖ member ‖ round ‖ discount_bps ‖ nonce)` during the commit
+phase. The discount stays hidden until the reveal phase opens, and the digest is
+binding, so a member cannot change their discount after seeing the openings.
+This makes transaction ordering profitable-neutral: an adversary who copies a
+broadcast opening still cannot know the field before their own commitment is
+fixed.
+
+**Test.** `test_sealed_bids_are_hidden_until_reveal` asserts `get_all_bids()` is
+empty and `get_bid` is `None` while commitments exist.
