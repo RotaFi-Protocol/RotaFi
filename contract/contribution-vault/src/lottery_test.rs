@@ -127,3 +127,101 @@ fn test_non_member_commitment_rejected() {
     let outsider = Address::generate(&env);
     commit(&env, &vault, &outsider, &secret(&env, 9));
 }
+
+fn reveal(env: &Env, vault: &Address, member: &Address, secret: &BytesN<32>) {
+    env.mock_all_auths();
+    ContributionVaultClient::new(env, vault).reveal_randomness(member, secret);
+}
+
+#[test]
+fn test_reveal_records_secret() {
+    let env = Env::default();
+    let (vault, _config, _token, members) = deploy_active_vault(&env);
+
+    commit(&env, &vault, &members[0], &secret(&env, 1));
+    commit(&env, &vault, &members[1], &secret(&env, 2));
+    commit(&env, &vault, &members[2], &secret(&env, 3));
+
+    let s = secret(&env, 1);
+    reveal(&env, &vault, &members[0], &s);
+
+    let rnd = ContributionVaultClient::new(&env, &vault)
+        .get_round_randomness()
+        .unwrap();
+    assert_eq!(rnd.phase, LotteryPhase::Revealing);
+    assert_eq!(rnd.reveal_count, 1);
+    assert_eq!(
+        ContributionVaultClient::new(&env, &vault)
+            .get_reveal(&1u32, &members[0])
+            .unwrap(),
+        s
+    );
+}
+
+#[test]
+fn test_all_reveals_reach_ready() {
+    let env = Env::default();
+    let (vault, _config, _token, members) = deploy_active_vault(&env);
+
+    for (i, member) in members.iter().enumerate() {
+        commit(&env, &vault, member, &secret(&env, i as u8 + 1));
+    }
+    for (i, member) in members.iter().enumerate() {
+        reveal(&env, &vault, member, &secret(&env, i as u8 + 1));
+    }
+
+    let rnd = ContributionVaultClient::new(&env, &vault)
+        .get_round_randomness()
+        .unwrap();
+    assert_eq!(rnd.phase, LotteryPhase::Ready);
+    assert_eq!(rnd.reveal_count, 3);
+}
+
+#[test]
+#[should_panic(expected = "Reveal does not match commitment")]
+fn test_reveal_with_wrong_secret_rejected() {
+    let env = Env::default();
+    let (vault, _config, _token, members) = deploy_active_vault(&env);
+
+    for (i, member) in members.iter().enumerate() {
+        commit(&env, &vault, member, &secret(&env, i as u8 + 1));
+    }
+    reveal(&env, &vault, &members[0], &secret(&env, 99));
+}
+
+#[test]
+#[should_panic(expected = "Reveal phase is not open")]
+fn test_reveal_before_all_commits_rejected() {
+    let env = Env::default();
+    let (vault, _config, _token, members) = deploy_active_vault(&env);
+
+    commit(&env, &vault, &members[0], &secret(&env, 1));
+    reveal(&env, &vault, &members[0], &secret(&env, 1));
+}
+
+#[test]
+#[should_panic(expected = "Member already revealed")]
+fn test_duplicate_reveal_rejected() {
+    let env = Env::default();
+    let (vault, _config, _token, members) = deploy_active_vault(&env);
+
+    for (i, member) in members.iter().enumerate() {
+        commit(&env, &vault, member, &secret(&env, i as u8 + 1));
+    }
+    reveal(&env, &vault, &members[0], &secret(&env, 1));
+    reveal(&env, &vault, &members[0], &secret(&env, 1));
+}
+
+#[test]
+#[should_panic(expected = "Member has not committed")]
+fn test_reveal_without_commit_rejected() {
+    let env = Env::default();
+    let (vault, _config, _token, members) = deploy_active_vault(&env);
+
+    let outsider = Address::generate(&env);
+    for (i, member) in members.iter().enumerate() {
+        commit(&env, &vault, member, &secret(&env, i as u8 + 1));
+    }
+    reveal(&env, &vault, &outsider, &secret(&env, 5));
+}
+
