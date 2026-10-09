@@ -8,6 +8,7 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "test": "jest --forceExit --detectOpenHandles",
+    "test:integration": "jest --config jest.integration.config.js --forceExit --detectOpenHandles --runInBand",
     "lint": "eslint src/"
   },
   "dependencies": {
