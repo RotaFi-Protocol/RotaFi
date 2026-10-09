@@ -53,7 +53,7 @@ RotaFi brings **ROSCA** (Rotating Savings and Credit Associations) — also know
 
 ```
 contract/     Soroban smart contracts (Rust)    — 5 crates, 84 unit tests
-backend/      REST API (Express + TypeScript)    — validation, rate limiting, 23 tests
+backend/      REST API (Express + TypeScript)    — validation, rate limiting, 23 unit + 9 integration tests
 keeper/       Background bot (Node.js)           — round advancement, slashing, 15 tests
 frontend/     Web UI (Next.js + TypeScript)      — circle browser, dashboard, wallet connect
 docs/         Documentation (Astro Starlight)    — protocol overview, API reference, guides

@@ -234,3 +234,40 @@ All errors follow this format:
 ```
 
 HTTP status codes: `400` (validation), `404` (not found), `429` (rate limit), `500` (server error).
+
+---
+
+## Live reads
+
+Read endpoints are served from an in-memory cache by default. Set
+`SOROBAN_LIVE_READS=true` to read directly from the deployed testnet
+contracts via Soroban RPC simulation. The addresses default to the
+deployments listed in `contract/DEPLOYED_ADDRESSES.md` and can be
+overridden with `CIRCLE_FACTORY_ADDRESS`, `CONTRIBUTION_VAULT_ADDRESS`,
+`REPUTATION_REGISTRY_ADDRESS` and `BID_ENGINE_ADDRESS`.
+
+| Reader | Contract method |
+|--------|-----------------|
+| `GET /api/v1/circles/:id` | `get_circle` |
+| `GET /api/v1/circles` | `circle_count` |
+| `GET /api/v1/contributions/vault` | `get_vault` |
+| `GET /api/v1/reputation/score/:address` | `get_score` |
+| `GET /api/v1/reputation/rating/:address` | `get_rating` |
+
+---
+
+## Testing
+
+```bash
+# Unit tests (no network access)
+npm test
+
+# Integration tests against Stellar testnet
+npm run test:integration
+```
+
+The integration suite lives in `tests/soroban.integration.test.ts` and
+calls the deployed `get_circle`, `get_vault` and `get_rating` contract
+methods over real Soroban RPC. It is enabled by `RUN_INTEGRATION_TESTS=true`
+(set by the npm script) and skipped otherwise.
+
