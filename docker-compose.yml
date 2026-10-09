@@ -44,7 +44,7 @@ services:
       context: ./backend
       target: development
     container_name: rotafi-backend
-    command: ["npm", "run", "dev"]
+    command: ["sh", "/usr/local/bin/with-deployments.sh", "npm", "run", "dev"]
     environment:
       NODE_ENV: development
       PORT: "3000"
@@ -59,6 +59,8 @@ services:
     volumes:
       - ./backend:/app
       - backend-node-modules:/app/node_modules
+      - ./docker/with-deployments.sh:/usr/local/bin/with-deployments.sh:ro
+      - ./docker/generated:/deployments:ro
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -78,7 +80,7 @@ services:
       context: ./keeper
       target: development
     container_name: rotafi-keeper
-    command: ["npm", "run", "dev"]
+    command: ["sh", "/usr/local/bin/with-deployments.sh", "npm", "run", "dev"]
     environment:
       NODE_ENV: development
       SOROBAN_RPC_URL: http://soroban:8000/rpc
@@ -88,6 +90,8 @@ services:
     volumes:
       - ./keeper:/app
       - keeper-node-modules:/app/node_modules
+      - ./docker/with-deployments.sh:/usr/local/bin/with-deployments.sh:ro
+      - ./docker/generated:/deployments:ro
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3002/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -107,7 +111,7 @@ services:
       context: ./frontend
       target: development
     container_name: rotafi-frontend
-    command: ["npm", "run", "dev"]
+    command: ["sh", "/usr/local/bin/with-deployments.sh", "npm", "run", "dev"]
     environment:
       NODE_ENV: development
       NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-3000}
@@ -124,6 +128,8 @@ services:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules
       - frontend-next:/app/.next
+      - ./docker/with-deployments.sh:/usr/local/bin/with-deployments.sh:ro
+      - ./docker/generated:/deployments:ro
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -137,6 +143,33 @@ services:
       - rotafi
     restart: unless-stopped
 
+  # ------------------------------------------------- optional: contracts
+  # One-shot job that builds the Rust contracts and deploys them to the local
+  # sandbox. Enable with the `contracts` profile:
+  #   docker compose --profile contracts run --rm contracts
+  contracts:
+    image: stellar/stellar-cli:${STELLAR_CLI_TAG:-latest}
+    container_name: rotafi-contracts
+    profiles: ["contracts"]
+    entrypoint: ["/bin/bash", "/scripts/deploy-contracts.sh"]
+    working_dir: /source
+    environment:
+      STELLAR_RPC_URL: http://soroban:8000/rpc
+      NETWORK_PASSPHRASE: ${NETWORK_PASSPHRASE:-Standalone Network ; February 2017}
+      DEPLOYMENTS_FILE: /deployments/deployed.env
+    volumes:
+      - ./contract:/source
+      - ./docker/deploy-contracts.sh:/scripts/deploy-contracts.sh:ro
+      - ./docker/generated:/deployments
+      - stellar-cli-config:/config
+      - stellar-cli-data:/data
+      - stellar-cli-home:/stellar
+    depends_on:
+      soroban:
+        condition: service_healthy
+    networks:
+      - rotafi
+
 networks:
   rotafi:
     driver: bridge
@@ -147,3 +180,6 @@ volumes:
   keeper-node-modules:
   frontend-node-modules:
   frontend-next:
+  stellar-cli-config:
+  stellar-cli-data:
+  stellar-cli-home:
