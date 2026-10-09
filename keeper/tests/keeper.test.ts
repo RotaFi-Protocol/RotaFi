@@ -16,6 +16,7 @@ function createTestVault(overrides: Partial<VaultState> = {}): VaultState {
     grace_period_seconds: 300,
     config: {
       circle_id: 1,
+      token_address: 'CBUSYNQKASUYFWYC3M2GUEDMX4AIVWPALDBYJPNK6554BREHTGZ2IUNF',
       contribution_per_member: '100000000',
       member_cap: 3,
       total_rounds: 3,

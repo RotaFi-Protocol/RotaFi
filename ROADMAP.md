@@ -18,7 +18,7 @@
 - [ ] **Reputation-gated circles** — minimum on-chain reputation score required to join
 - [ ] **Reputation decay** — scores decay over time if a member stops participating
 - [ ] **Circle governance** — members vote to eject a defaulting member and redistribute their collateral
-- [ ] **Multi-token support** — accept XLM in addition to USDC
+- [x] **Multi-token support** — circles can be denominated in XLM, USDC, EURC, or custom Stellar tokens
 - [ ] **Circle templates** — pre-configured circle types (weekly micro, monthly standard, annual large)
 - [ ] **Mobile-responsive frontend overhaul**
 - [ ] **Keeper decentralization** — support community keepers with on-chain keeper registry

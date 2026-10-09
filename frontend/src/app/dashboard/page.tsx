@@ -6,6 +6,7 @@ import WalletConnect from '@/components/WalletConnect';
 import PageHeader from '@/components/PageHeader';
 import { LoadingSpinner, EmptyState } from '@/components/States';
 import type { VaultState } from '@/types';
+import { formatAssetAmount, getAsset } from '@/lib/assets';
 
 export default function DashboardPage() {
   const { wallet, isLoading: walletLoading, error: walletError, connect, disconnect } = useWallet();
@@ -17,6 +18,7 @@ export default function DashboardPage() {
       member_cap: 5,
       total_rounds: 5,
       min_collateral: '50000000',
+      token_symbol: 'XLM',
     },
     current_round: 3,
     state: 'Active',
@@ -24,6 +26,7 @@ export default function DashboardPage() {
     members_paid_current_round: 4,
   });
 
+  const asset = vault ? getAsset(vault.config.token_symbol || vault.config.token_address) : null;
   const paidPct = vault ? Math.round((vault.members_paid_current_round / vault.member_count) * 100) : 0;
 
   return (
@@ -55,9 +58,10 @@ export default function DashboardPage() {
                 <Stat label="Status" value={vault.state} />
                 <Stat label="Round" value={`${vault.current_round} / ${vault.config.total_rounds}`} />
                 <Stat label="Members Paid" value={`${vault.members_paid_current_round} / ${vault.member_count}`} />
-                <Stat label="Contribution" value={`${(parseInt(vault.config.contribution_per_member) / 1e7).toFixed(2)} USDC`} />
-                <Stat label="Collateral" value={`${(parseInt(vault.config.min_collateral) / 1e7).toFixed(2)} USDC`} />
+                <Stat label="Contribution" value={formatAssetAmount(vault.config.contribution_per_member, asset)} />
+                <Stat label="Collateral" value={formatAssetAmount(vault.config.min_collateral, asset)} />
                 <Stat label="Member Cap" value={String(vault.config.member_cap)} />
+                <Stat label="Currency" value={asset?.symbol ?? vault.config.token_symbol ?? 'USDC'} />
               </div>
 
               <div className="card-section">

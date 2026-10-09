@@ -1,16 +1,18 @@
 #![cfg(test)]
 
 use super::*;
+use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{Address, Env};
 
 fn create_test_config(_env: &Env, payout_method: PayoutMethod) -> CircleConfig {
     CircleConfig {
-        contribution_amount: 100_000_000, // 100 USDC (7 decimals)
-        round_length_seconds: 604800,      // 1 week
+        contribution_amount: 100_000_000,
+        round_length_seconds: 604800, // 1 week
         member_cap: 5,
         payout_method,
-        min_collateral: 50_000_000,        // 50 USDC
-        grace_period_seconds: 86400,        // 1 day
+        min_collateral: 50_000_000,
+        grace_period_seconds: 86400, // 1 day
+        token_address: Address::generate(_env),
     }
 }
 
@@ -37,6 +39,24 @@ fn test_create_circle_happy_path() {
     assert_eq!(circle.config.payout_method, PayoutMethod::Lottery);
     assert_eq!(circle.active, false);
     assert_eq!(circle.organizer, contract_id);
+    assert_eq!(circle.config.token_address, config.token_address);
+}
+
+#[test]
+fn test_create_circle_with_custom_token() {
+    let env = Env::default();
+    let contract_id = deploy(&env);
+    let admin = Address::generate(&env);
+    let custom_token = env.register_stellar_asset_contract_v2(admin).address();
+
+    let mut config = create_test_config(&env, PayoutMethod::Lottery);
+    config.token_address = custom_token.clone();
+
+    let circle_id = CircleFactoryClient::new(&env, &contract_id).create_circle(&config);
+    let circle = CircleFactoryClient::new(&env, &contract_id).get_circle(&circle_id).unwrap();
+
+    assert_eq!(circle.config.token_address, custom_token);
+    assert_ne!(circle.config.member_cap, 0);
 }
 
 #[test]

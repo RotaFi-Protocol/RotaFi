@@ -77,6 +77,8 @@ Create a new circle (simulated — returns tx params for signing).
 | payout_method | number | 0=Lottery, 1=Auction, 2=Priority |
 | min_collateral | string | Minimum collateral in stroops |
 | grace_period_seconds | string | Grace period in seconds |
+| token_symbol | string | Optional. Circle currency (USDC, EURC, XLM, ...). Defaults to USDC |
+| token_address | string | Optional. Explicit Stellar asset contract address (overrides token_symbol) |
 
 **Response 201:**
 ```json
@@ -102,7 +104,7 @@ Join a circle (simulated — returns tx params for signing).
 | Field | Type | Description |
 |-------|------|-------------|
 | member_address | string | Stellar account address |
-| token_address | string | USDC token contract address |
+| token_address | string | Token contract address matching the circle's currency |
 
 **Response 200:** Transaction params for `join_vault`
 
@@ -145,7 +147,7 @@ Submit a contribution (simulated — returns tx params).
 | Field | Type | Description |
 |-------|------|-------------|
 | member_address | string | Member's Stellar address |
-| token_address | string | USDC token contract address |
+| token_address | string | Token contract address matching the circle's currency |
 
 ### `POST /api/v1/contributions/payout`
 
@@ -157,7 +159,42 @@ Release payout to a winner (simulated — returns tx params).
 | Field | Type | Description |
 |-------|------|-------------|
 | winner_address | string | Winner's Stellar address |
-| token_address | string | USDC token contract address |
+| token_address | string | Token contract address matching the circle's currency |
+
+---
+
+## Tokens
+
+### `GET /api/v1/tokens`
+
+List the currencies the protocol currently supports for circles.
+
+**Response 200:**
+```json
+{
+  "total": 3,
+  "tokens": [
+    {
+      "symbol": "USDC",
+      "name": "USD Coin",
+      "address": "CBUSYNQ...GZ2IUNF",
+      "decimals": 7
+    },
+    {
+      "symbol": "EURC",
+      "name": "Euro Coin",
+      "address": "CDDCKBV...RGS5JD",
+      "decimals": 7
+    },
+    {
+      "symbol": "XLM",
+      "name": "Stellar Lumens",
+      "address": "CDLZFC3...HHGCYSC",
+      "decimals": 7
+    }
+  ]
+}
+```
 
 ---
 

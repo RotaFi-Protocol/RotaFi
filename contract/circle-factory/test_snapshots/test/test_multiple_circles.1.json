@@ -1,6 +1,6 @@
 {
   "generators": {
-    "address": 1,
+    "address": 2,
     "nonce": 0,
     "mux_id": 0
   },
@@ -101,6 +101,14 @@
                                 "val": {
                                   "u64": "604800"
                                 }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "token_address"
+                                },
+                                "val": {
+                                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                                }
                               }
                             ]
                           }
@@ -199,6 +207,14 @@
                                 "val": {
                                   "u64": "604800"
                                 }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "token_address"
+                                },
+                                "val": {
+                                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                                }
                               }
                             ]
                           }
@@ -296,6 +312,14 @@
                                 },
                                 "val": {
                                   "u64": "604800"
+                                }
+                              },
+                              {
+                                "key": {
+                                  "symbol": "token_address"
+                                },
+                                "val": {
+                                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
                                 }
                               }
                             ]

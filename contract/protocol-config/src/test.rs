@@ -479,3 +479,101 @@ fn test_upgrade_requires_authorization() {
     let wasm_hash: BytesN<32> = BytesN::from_array(&env, &[0u8; 32]);
     client.upgrade(&first_two(&env, &owners), &wasm_hash);
 }
+
+#[test]
+fn test_add_and_query_supported_token() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let token = Address::generate(&env);
+    client.add_supported_token(&first_two(&env, &owners), &token, &symbol_short!("EURC"), &7u32);
+
+    assert!(client.is_token_supported(&token));
+    let info = client.get_token_info(&token).unwrap();
+    assert_eq!(info.address, token);
+    assert_eq!(info.symbol, symbol_short!("EURC"));
+    assert_eq!(info.decimals, 7);
+}
+
+#[test]
+fn test_get_supported_tokens_returns_all() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let token_a = Address::generate(&env);
+    let token_b = Address::generate(&env);
+    client.add_supported_token(&first_two(&env, &owners), &token_a, &symbol_short!("USDC"), &7u32);
+    client.add_supported_token(&first_two(&env, &owners), &token_b, &symbol_short!("XLM"), &7u32);
+
+    let tokens = client.get_supported_tokens();
+    assert_eq!(tokens.len(), 2);
+}
+
+#[test]
+fn test_remove_supported_token() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let token = Address::generate(&env);
+    client.add_supported_token(&first_two(&env, &owners), &token, &symbol_short!("USDC"), &7u32);
+    assert!(client.is_token_supported(&token));
+
+    client.remove_supported_token(&first_two(&env, &owners), &token);
+    assert!(!client.is_token_supported(&token));
+    assert!(client.get_token_info(&token).is_none());
+    assert_eq!(client.get_supported_tokens().len(), 0);
+}
+
+#[test]
+#[should_panic(expected = "Token already supported")]
+fn test_add_supported_token_duplicate_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let token = Address::generate(&env);
+    client.add_supported_token(&first_two(&env, &owners), &token, &symbol_short!("USDC"), &7u32);
+    client.add_supported_token(&first_two(&env, &owners), &token, &symbol_short!("USD"), &7u32);
+}
+
+#[test]
+#[should_panic(expected = "Token is not supported")]
+fn test_remove_unsupported_token_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.remove_supported_token(&first_two(&env, &owners), &Address::generate(&env));
+}
+
+#[test]
+#[should_panic(expected = "Token decimals exceed maximum")]
+fn test_add_supported_token_bad_decimals_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.add_supported_token(&first_two(&env, &owners), &Address::generate(&env), &symbol_short!("TKN"), &22u32);
+}
+
+#[test]
+#[should_panic(expected = "Insufficient multisig approvals")]
+fn test_add_supported_token_insufficient_approvals_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 3);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let mut approvers = Vec::new(&env);
+    approvers.push_back(owners.get(0).unwrap());
+    client.add_supported_token(&approvers, &Address::generate(&env), &symbol_short!("TKN"), &7u32);
+}

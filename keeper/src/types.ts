@@ -7,6 +7,7 @@ export enum VaultStateType {
 
 export interface VaultConfig {
   circle_id: number;
+  token_address: string;
   contribution_per_member: string;
   member_cap: number;
   total_rounds: number;

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { getCircleCount, getCircle, buildCreateCircleTx, buildJoinVaultTx } from '../services/soroban';
+import { getCircleCount, getCircle, buildCreateCircleTx, buildJoinVaultTx, resolveTokenAddress } from '../services/soroban';
+import { getTokenByAddress } from '../services/tokens';
 import { createCircleSchema, joinCircleSchema } from '../middleware/validation';
 import { strictLimiter } from '../middleware/rateLimiter';
 
@@ -10,6 +11,8 @@ interface CircleSummary {
   member_cap: number;
   payout_method: number;
   contribution_amount: string;
+  token_address: string;
+  token_symbol: string;
   active: boolean;
 }
 
@@ -57,11 +60,16 @@ router.post('/', strictLimiter, async (req: Request, res: Response) => {
     const params = parsed.data;
     const circleId = circleCache.size + 1;
 
+    const tokenAddress = resolveTokenAddress(params);
+    const token = getTokenByAddress(tokenAddress);
+
     const summary: CircleSummary = {
       id: circleId,
       member_cap: params.member_cap,
       payout_method: params.payout_method,
       contribution_amount: params.contribution_amount,
+      token_address: tokenAddress,
+      token_symbol: token?.symbol ?? 'CUSTOM',
       active: false,
     };
     circleCache.set(circleId, summary);

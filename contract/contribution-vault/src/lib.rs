@@ -103,13 +103,15 @@ impl ContributionVault {
 
     /// Allows a member to join the circle by staking collateral.
     ///
-    /// The member transfers `min_collateral` USDC from their account to this vault.
+    /// The member transfers `min_collateral` of the circle's configured token
+    /// (see [`VaultConfig::token_address`]) from their account to this vault.
     /// Collateral is held as a security deposit against defaults.
     ///
     /// # Panics
-    /// Panics if the vault is not in Setup state, member cap is reached,
-    /// or the member has already joined.
-    pub fn join_vault(env: Env, member: Address, usdc_token: Address) {
+    /// Panics if the vault is not in Setup state, member cap is reached, the
+    /// member has already joined, or the supplied token does not match the
+    /// vault's configured token.
+    pub fn join_vault(env: Env, member: Address, token: Address) {
         member.require_auth();
         let mut vault: Vault = env.storage().instance().get(&VAULT).unwrap();
 
@@ -117,6 +119,10 @@ impl ContributionVault {
         assert!(
             vault.member_count < vault.config.member_cap,
             "Member cap reached"
+        );
+        assert!(
+            token == vault.config.token_address,
+            "Token does not match vault configuration"
         );
 
         let mut members: Map<Address, MemberInfo> = env
@@ -130,7 +136,7 @@ impl ContributionVault {
         let collateral_amount = vault.config.min_collateral;
 
         // Transfer collateral from member to vault
-        let token_client = token::Client::new(&env, &usdc_token);
+        let token_client = token::Client::new(&env, &token);
         token_client.transfer(
             &member,
             &env.current_contract_address(),
@@ -168,11 +174,16 @@ impl ContributionVault {
     ///
     /// # Panics
     /// Panics if vault is not active, member is not joined, member already
-    /// paid this round, or contribution amount is incorrect.
-    pub fn contribute(env: Env, member: Address, usdc_token: Address) {
+    /// paid this round, contribution amount is incorrect, or the supplied
+    /// token does not match the vault's configured token.
+    pub fn contribute(env: Env, member: Address, token: Address) {
         member.require_auth();
         let mut vault: Vault = env.storage().instance().get(&VAULT).unwrap();
         assert!(vault.state == VaultState::Active, "Vault is not active");
+        assert!(
+            token == vault.config.token_address,
+            "Token does not match vault configuration"
+        );
 
         let members: Map<Address, MemberInfo> = env
             .storage()
@@ -201,7 +212,7 @@ impl ContributionVault {
         let amount = vault.config.contribution_per_member;
 
         // Transfer contribution from member to vault
-        let token_client = token::Client::new(&env, &usdc_token);
+        let token_client = token::Client::new(&env, &token);
         token_client.transfer(
             &member,
             &env.current_contract_address(),
@@ -348,10 +359,15 @@ impl ContributionVault {
     /// Can only be called when all members have paid or grace period has expired.
     ///
     /// # Panics
-    /// Panics if all members haven't paid, or if the winner is invalid.
-    pub fn release_payout(env: Env, winner: Address, usdc_token: Address) {
+    /// Panics if all members haven't paid, the winner is invalid, or the
+    /// supplied token does not match the vault's configured token.
+    pub fn release_payout(env: Env, winner: Address, token: Address) {
         let mut vault: Vault = env.storage().instance().get(&VAULT).unwrap();
         assert!(vault.state == VaultState::Active, "Vault is not active");
+        assert!(
+            token == vault.config.token_address,
+            "Token does not match vault configuration"
+        );
 
         let active_count = self_active_member_count(&env);
         let all_paid = vault.members_paid_current_round >= active_count;
@@ -381,7 +397,7 @@ impl ContributionVault {
         let pot = vault.config.contribution_per_member
             * (vault.member_count as i128);
 
-        let token_client = token::Client::new(&env, &usdc_token);
+        let token_client = token::Client::new(&env, &token);
         token_client.transfer(
             &env.current_contract_address(),
             &winner,
@@ -431,10 +447,15 @@ impl ContributionVault {
     ///
     /// # Panics
     /// Panics if the vault is not active, contributions are still outstanding,
-    /// or the draw is not ready.
-    pub fn release_lottery_payout(env: Env, usdc_token: Address) {
+    /// the draw is not ready, or the supplied token does not match the vault's
+    /// configured token.
+    pub fn release_lottery_payout(env: Env, token: Address) {
         let mut vault: Vault = env.storage().instance().get(&VAULT).unwrap();
         assert!(vault.state == VaultState::Active, "Vault is not active");
+        assert!(
+            token == vault.config.token_address,
+            "Token does not match vault configuration"
+        );
 
         let now = env.ledger().timestamp();
         let active_count = self_active_member_count(&env);
@@ -476,7 +497,7 @@ impl ContributionVault {
         members.set(winner.clone(), winner_info);
 
         let pot = vault.config.contribution_per_member * (vault.member_count as i128);
-        let token_client = token::Client::new(&env, &usdc_token);
+        let token_client = token::Client::new(&env, &token);
         token_client.transfer(&env.current_contract_address(), &winner, &pot);
 
         let mut round_winners: Map<u32, Address> = env
@@ -569,6 +590,16 @@ impl ContributionVault {
     /// Returns vault metadata.
     pub fn get_vault(env: Env) -> Vault {
         env.storage().instance().get(&VAULT).unwrap()
+    }
+
+    /// Returns the address of the token this vault is denominated in.
+    ///
+    /// The vault accepts only the token recorded in its configuration, so a
+    /// vault created for EURC (or any custom asset) can never accidentally
+    /// collect or disburse a different token.
+    pub fn get_token_address(env: Env) -> Address {
+        let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        vault.config.token_address
     }
 
     /// Returns member info for a given member address.

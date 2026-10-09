@@ -13,7 +13,7 @@ Traditional ROSCAs rely entirely on trust among members. If a member defaults af
 
 RotaFi replaces social trust with **smart contract guarantees** on Stellar Soroban:
 
-- **Collateral staking** — every member posts a refundable USDC stake on joining
+- **Collateral staking** — every member posts a refundable collateral stake on joining
 - **Automated payouts** — the pot is released only when conditions are met, not when an organizer decides
 - **Reputation tracking** — defaults are recorded on-chain, creating a portable score visible to all circles
 - **Verifiable randomness** — for lottery-style circles, payout order is determined by on-chain randomness
@@ -22,8 +22,8 @@ RotaFi replaces social trust with **smart contract guarantees** on Stellar Sorob
 
 | Feature | Description |
 |---------|-------------|
-| Circle Creation | Configure contribution amount, round length, member cap, and payout method |
-| USDC Contributions | All payments in Stellar USDC via Soroban's token interface |
+| Circle Creation | Configure contribution amount, round length, member cap, payout method, and currency |
+| Multi-Token Support | Circles run on XLM, USDC, EURC, or any custom Stellar asset via Soroban's token interface |
 | Multi-method Payout | Lottery, sealed-bid auction, or priority-based payout order |
 | Default Protection | Collateral slashing and on-chain reputation marks for missed payments |
 | Keeper Automation | Background bot advances rounds and triggers payouts automatically |

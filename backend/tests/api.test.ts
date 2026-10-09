@@ -54,6 +54,22 @@ describe('Circles API', () => {
     expect(res.body.transaction).toHaveProperty('method', 'create_circle');
   });
 
+  it('POST /api/v1/circles supports token_symbol (EURC)', async () => {
+    const res = await request(app).post('/api/v1/circles').send({
+      contribution_amount: '200000000',
+      round_length_seconds: '604800',
+      member_cap: 4,
+      payout_method: 1,
+      min_collateral: '100000000',
+      grace_period_seconds: '86400',
+      token_symbol: 'EURC',
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.circle).toHaveProperty('token_symbol', 'EURC');
+    expect(res.body.circle.token_address).toBeTruthy();
+    expect(res.body.transaction.params).toHaveProperty('token_address');
+  });
+
   it('POST /api/v1/circles with member_cap=1 returns 400', async () => {
     const res = await request(app).post('/api/v1/circles').send({
       contribution_amount: '100000000',
@@ -161,6 +177,26 @@ describe('Bids API', () => {
     });
     expect(res.status).toBe(200);
     expect(res.body.transaction).toHaveProperty('method', 'submit_bid');
+  });
+});
+
+describe('Tokens API', () => {
+  it('GET /api/v1/tokens returns supported currencies', async () => {
+    const res = await request(app).get('/api/v1/tokens');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('tokens');
+    const symbols = res.body.tokens.map((t: { symbol: string }) => t.symbol);
+    expect(symbols).toContain('USDC');
+    expect(symbols).toContain('EURC');
+    expect(symbols).toContain('XLM');
+  });
+
+  it('GET /api/v1/tokens returns token metadata fields', async () => {
+    const res = await request(app).get('/api/v1/tokens');
+    const usdc = res.body.tokens.find((t: { symbol: string }) => t.symbol === 'USDC');
+    expect(usdc).toHaveProperty('address');
+    expect(usdc).toHaveProperty('decimals', 7);
+    expect(usdc).toHaveProperty('name');
   });
 });
 

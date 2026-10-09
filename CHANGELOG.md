@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 #### Contracts
+- **Multi-token support** — circles are no longer USDC-only: `CircleConfig` records a `token_address` per circle, the `ContributionVault` uses its configured token (rejecting any mismatched asset) and exposes `get_token_address`, and `ProtocolConfig` gains a multisig-governed supported-token registry (`add_supported_token`, `remove_supported_token`, `is_token_supported`, `get_token_info`, `get_supported_tokens`) for XLM, USDC, EURC, or custom Stellar assets
 - Commit-reveal sealed bids in `BidEngine`: `submit_bid`/`resolve_auction(member_cap)` replaced by `commit_bid`/`reveal_bid`/`resolve_auction()` so discounts stay hidden until the commit phase closes and are bound to `sha256(contract ‖ member ‖ round ‖ discount ‖ nonce)`
 - Round, roster and deadline binding in `BidEngine`: auctions are tied to a single round (`round > LAST_ROUND`), restricted to an explicit member roster, and bounded by `commit_deadline`/`reveal_deadline` with a minimum reveal window
 - Deterministic `BidEngine` resolution: highest revealed discount wins with ties broken to the lexicographically smallest address, a `min_discount_bps` reserve, stored-`member_cap` pro-rata split, and permissionless time-boxed settling that tolerates partial reveals
@@ -23,6 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `determinePayoutRecipient` now derives the verifiable lottery winner from the round's openings and ledger entropy instead of returning a placeholder
 
 #### Backend
+- **Tokens API** — new `GET /api/v1/tokens` endpoint and `supportedTokens` config advertise the assets available for circles (USDC, EURC, XLM by default, each overridable by env); circle creation accepts `token_symbol`/`token_address` and the API surfaces `token_address`/`token_symbol` on circles
 - Soroban RPC client (`src/services/sorobanRpc.ts`) with read-only contract simulation, typed `ContractCallError` and health checks
 - `ChainReader` for reading `get_circle`, `circle_count`, `get_vault`, `get_score` and `get_rating` from the deployed testnet contracts
 - Optional live reads from Soroban testnet via `SOROBAN_LIVE_READS=true`
@@ -44,6 +46,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 #### Frontend
+- **Multi-currency display** — a supported-asset registry (`lib/assets.ts`), `AssetBadge` chips, decimals-aware `formatAssetAmount`, a currency filter on the circle browser, and currency labels across circle cards, circle detail, dashboard and reputation pages
 - Mobile-responsive design pass across the circle browser grid, dashboard cards, bid submission, wallet connect and navigation, with adaptive single-column layouts, a sticky scrollable header and active-route highlighting
 - Centralised responsive design tokens, reusable button/card/state primitives and `44px` minimum touch targets in `globals.css`
 - Safe-area (`viewport-fit=cover`) insets, dvh sizing, reduced-motion support and explicit `iOS Safari`/`Chrome Android` browser targets

@@ -1,5 +1,6 @@
 import { config } from '../config';
 import { ChainReader, createChainReader } from './chainReader';
+import { getTokenBySymbol } from './tokens';
 
 // In-memory storage for API state (cache for contract reads)
 const memberCache = new Map<string, any>();
@@ -36,6 +37,7 @@ export async function getVaultState(): Promise<any> {
   return {
     config: {
       circle_id: 1,
+      token_address: resolveTokenAddress({}),
       contribution_per_member: '100000000',
       member_cap: 5,
       total_rounds: 5,
@@ -97,6 +99,24 @@ export async function getAllBids(): Promise<any[]> {
 
 // Transaction building helpers
 
+/**
+ * Resolves the token_address backing a circle from either an explicit
+ * contract address or a supported asset symbol. Falls back to USDC, matching
+ * the protocol's historical default.
+ */
+export function resolveTokenAddress(params: {
+  token_symbol?: string;
+  token_address?: string;
+}): string {
+  if (params.token_address) return params.token_address;
+  if (params.token_symbol) {
+    const token = getTokenBySymbol(params.token_symbol);
+    if (token) return token.address;
+  }
+  const usdc = getTokenBySymbol('USDC');
+  return usdc ? usdc.address : config.supportedTokens[0].address;
+}
+
 export function buildCreateCircleTx(params: {
   contribution_amount: string;
   round_length_seconds: string;
@@ -104,6 +124,8 @@ export function buildCreateCircleTx(params: {
   payout_method: number;
   min_collateral: string;
   grace_period_seconds: string;
+  token_symbol?: string;
+  token_address?: string;
 }) {
   return {
     contract_id: config.contracts.circleFactory,
@@ -115,6 +137,7 @@ export function buildCreateCircleTx(params: {
       payout_method: { 0: 'Lottery', 1: 'SealedBidAuction', 2: 'PriorityBased' }[params.payout_method],
       min_collateral: params.min_collateral,
       grace_period_seconds: params.grace_period_seconds,
+      token_address: resolveTokenAddress(params),
     },
   };
 }
@@ -141,7 +164,7 @@ export function buildJoinVaultTx(memberAddress: string, tokenAddress: string) {
   return {
     contract_id: config.contracts.contributionVault,
     method: 'join_vault',
-    params: { member: memberAddress, usdc_token: tokenAddress },
+    params: { member: memberAddress, token: tokenAddress },
   };
 }
 
@@ -156,7 +179,7 @@ export function buildContributeTx(memberAddress: string, tokenAddress: string) {
   return {
     contract_id: config.contracts.contributionVault,
     method: 'contribute',
-    params: { member: memberAddress, usdc_token: tokenAddress },
+    params: { member: memberAddress, token: tokenAddress },
   };
 }
 
@@ -169,7 +192,7 @@ export function buildReleasePayoutTx(winnerAddress: string, tokenAddress: string
   return {
     contract_id: config.contracts.contributionVault,
     method: 'release_payout',
-    params: { winner: winnerAddress, usdc_token: tokenAddress },
+    params: { winner: winnerAddress, token: tokenAddress },
   };
 }
 
