@@ -33,6 +33,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Optional keeper HTTP health endpoint (`KEEPER_HEALTH_PORT`)
 - `Makefile` shortcuts and `docker/.env.example` for the local stack
 
+#### Docs
+- Collateral slashing threat model covering security assumptions, economic incentives and default-profitability analysis, griefing attack vectors (repeat/unbounded slashing, late-payer front-running, stale-round slashing), collusion scenarios (winner-then-default, organizer-fronted defaulters, governance capture), mitigation strategies, a threat matrix, and a prioritized hardening backlog (`docs/src/content/docs/security/collateral-slashing-threat-model.md`)
+
 ---
 
 ## [0.1.0] — 2026-10-01
