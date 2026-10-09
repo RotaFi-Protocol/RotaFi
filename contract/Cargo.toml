@@ -5,6 +5,7 @@ members = [
     "contribution-vault",
     "reputation-registry",
     "bid-engine",
+    "protocol-config",
 ]
 
 [workspace.dependencies]
