@@ -138,4 +138,75 @@ where the intended guarantee is stronger than what the code currently proves.
 They are analysed as attack classes in the sections that follow and revisited
 in [Residual risks](#residual-risks).
 
+## Economic incentives
+
+Collateral only works if the **expected cost of defaulting exceeds its expected
+gain**. This section states that condition precisely and shows where the
+current defaults can fail it.
+
+### Notation
+
+| Symbol | Meaning |
+|---|---|
+| `c` | `contribution_per_member` |
+| `N` | `member_cap` / `member_count` |
+| `r` | round in which a member receives the pot |
+| `T` | `total_rounds` |
+| `k` | `min_collateral` |
+| `s` | slash fraction applied per default (0–1) |
+
+### Default profitability
+
+A member who receives the pot in round `r` collects `N·c` and still owes
+`(T − r)·c` in future contributions. If they default on everything remaining
+and lose their whole bond, their net gain is:
+
+```
+default_gain(r) = (T − r)·c − k
+```
+
+Default is rational whenever `default_gain(r) > 0`, i.e. when
+
+```
+k < (T − r)·c
+```
+
+The worst case is the **earliest winner** (`r = 1`), whose remaining obligation
+is `(T − 1)·c`. A fully deterring bond therefore requires `k ≥ (T − 1)·c`.
+
+:::caution[The default parameters do not satisfy this]
+With the reference test configuration (`c = 1 USDC`, `k = 0.5 USDC`, `N = T = 3`),
+the earliest winner's remaining obligation is `(3 − 1)·1 = 2 USDC`, but the bond
+is only `0.5 USDC`. Even a 100% slash leaves a positive `default_gain` of
+`1.5 USDC`. **Under-collateralisation is the single largest economic risk to
+the mechanism**, and no on-chain check currently prevents a circle from being
+created this way.
+:::
+
+### Partial slashing weakens deterrence further
+
+The reference keeper applies `slash_percent = 50` (`keeper/src/watchers.ts`).
+If the round advances after one slash, the defaulter forfeits only `s·k = 0.25
+USDC` for a `2 USDC` gain. The enforcement must therefore be *repeated* to bite
+— which is exactly the property that makes the repeat-slash griefing vector
+(next section) dangerous for honest members.
+
+### Discounting and time preference
+
+Even a "fair" bond can be gamed by a member with a high discount rate: receiving
+`N·c` now and defaulting later is preferable to slowly paying in. This is the
+textbook **moral hazard** of ROSCAs. Because the pot is received *before* the
+obligations are discharged, collateral must be sized for the *undiscounted*
+remaining obligation, not the present value of the member's own future payments.
+
+### The organizer's incentive
+
+An adversarial organizer wants many members to default (to slash their bonds)
+or wants to win the pot early themselves. Since the organizer controls
+`min_collateral`, `contribution_per_member`, `member_cap` and
+`grace_period_seconds` (bounded only by `ProtocolConfig` if checked), a
+malicious organizer can deliberately set `k` near zero to make defection cheap
+for a colluding set of members, or set a long round to maximize the temptation
+window. Parameter governance is a first-class economic control, not a detail.
+
 <!-- END -->
