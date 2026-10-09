@@ -23,5 +23,6 @@ Explore the documentation:
 - [How ROSCA Works](/overview/how-rosca-works/) — Understand the savings mechanism
 - [Architecture](/overview/architecture/) — System design and components
 - [Contracts](/contracts/circle-factory/) — Smart contract API reference
+- [Security](/security/collateral-slashing-threat-model/) — Collateral slashing threat model
 - [Backend API](/api/backend/) — REST API documentation
 - [Deploying Contracts](/guides/deploying-contracts/) — Deploy your own instance

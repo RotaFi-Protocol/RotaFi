@@ -75,6 +75,8 @@ Slashes a percentage of the defaulter's collateral. Can only be called after gra
 
 Returns the slashed amount.
 
+> **Security:** be sure to read the [Collateral Slashing Threat Model](/security/collateral-slashing-threat-model) — `slash_percent` is supplied by the caller, slashing can be repeated in the same round, and no obligation-coverage or state/eligibility checks are enforced today.
+
 ### `get_vault() -> Vault`
 
 Returns current vault metadata (round, state, member count, etc.).
