@@ -473,4 +473,40 @@ So the same circle becomes sound only at `k ≥ 2.00 USDC`. Alternatively, with
 `k = 0.50` fixed, the circle must be capped at `T ≤ 1 + k/c = 1.5` rounds, which
 is impossible here — the correct response is to reject the configuration.
 
+## Residual risks and open questions
+
+Even after the recommended mitigations, the following are accepted or
+unresolved:
+
+- **O1 — Ownership of slashed value.** Today a slash is a pure accounting
+  write-down; the tokens stay in the vault, which (lacking an exit path) makes
+  their eventual ownership undefined. If a monitor/upgrade admin can move vault
+  funds, the slashed value effectively goes to whoever controls the admin key —
+  an incentive misalignment that M3 must resolve explicitly.
+- **O2 — Non-winner-takes-all safety.** `release_payout` accepts the winner as
+  a caller-supplied argument. In a priority/legacy circle the organizer can
+  therefore choose the winner, which is a *deliberate* feature for
+  priority-based circles but means "adversarial organizer" scenarios (C2) are
+  not fully excluded for those circles. Only lottery circles derive the winner
+  on-chain.
+- **O3 — Token assumptions (A7).** The vault takes any token address per call.
+  A fee-on-transfer or custom token could break the exact `collateral +
+  contribution` accounting the vault assumes. No whitelist exists.
+- **O4 — Time-source trust (A8).** All deadlines rely on ledger timestamps.
+  A validator-coordinated timestamp shift can accelerate or delay grace expiry.
+  This is bounded by Stellar consensus assumptions and currently accepted.
+- **O5 — Whole-circle default.** If a majority of members default in the same
+  round, the vault can still be advanced (grace expired) but the remaining
+  members absorb disproportionate loss; `member_count`-based pot sizing does
+  not shrink to reflect defaulters.
+- **O6 — Keeper non-verifiability.** Nothing on-chain proves a keeper acted in
+  time; monitor liveness is off-chain responsibility. A centralized single
+  keeper is also a central vector for C5/G-class abuse, so diversity of
+  monitors should be encouraged — even after M2 makes abuse economically
+  pointless.
+
+Decisions that need a governance call before these are closed: where slashed
+value flows (M3), whether non-lottery payout methods remain enabled (O2), and
+whether token/asset whitelisting is protocol policy (O3).
+
 <!-- END -->
