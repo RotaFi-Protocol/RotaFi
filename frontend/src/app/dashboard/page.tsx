@@ -1,33 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useWallet } from '@/hooks/useWallet';
+import { useCircleLifecycle } from '@/hooks/useCircleLifecycle';
 import WalletConnect from '@/components/WalletConnect';
 import PageHeader from '@/components/PageHeader';
-import { LoadingSpinner, EmptyState } from '@/components/States';
-import type { VaultState } from '@/types';
+import { EmptyState } from '@/components/States';
+import type { CircleLifecycle } from '@/types';
 import { formatAssetAmount, getAsset } from '@/lib/assets';
+import {
+  canContribute,
+  canReleasePayout,
+  listLifecycles,
+  progressPercent,
+} from '@/lib/lifecycle';
 
 export default function DashboardPage() {
   const { wallet, isLoading: walletLoading, error: walletError, connect, disconnect } = useWallet();
-  const [loading] = useState(false);
-  const [vault] = useState<VaultState | null>({
-    config: {
-      circle_id: 1,
-      contribution_per_member: '100000000',
-      member_cap: 5,
-      total_rounds: 5,
-      min_collateral: '50000000',
-      token_symbol: 'XLM',
-    },
-    current_round: 3,
-    state: 'Active',
-    member_count: 5,
-    members_paid_current_round: 4,
-  });
+  const [lifecycles, setLifecycles] = useState<CircleLifecycle[]>([]);
 
-  const asset = vault ? getAsset(vault.config.token_symbol || vault.config.token_address) : null;
-  const paidPct = vault ? Math.round((vault.members_paid_current_round / vault.member_count) * 100) : 0;
+  useEffect(() => {
+    setLifecycles(listLifecycles());
+  }, []);
 
   return (
     <div>
@@ -42,48 +36,131 @@ export default function DashboardPage() {
         />
       )}
 
-      {wallet.connected && (
-        <>
-          {loading && <LoadingSpinner message="Loading dashboard..." />}
-          {!loading && !vault && (
-            <EmptyState
-              title="No active circles"
-              description="You haven't joined any circles yet. Browse available circles to get started."
-            />
-          )}
-          {!loading && vault && (
-            <div className="card">
-              <h3 className="card-title">Circle #{vault.config.circle_id}</h3>
-              <div className="stat-grid">
-                <Stat label="Status" value={vault.state} />
-                <Stat label="Round" value={`${vault.current_round} / ${vault.config.total_rounds}`} />
-                <Stat label="Members Paid" value={`${vault.members_paid_current_round} / ${vault.member_count}`} />
-                <Stat label="Contribution" value={formatAssetAmount(vault.config.contribution_per_member, asset)} />
-                <Stat label="Collateral" value={formatAssetAmount(vault.config.min_collateral, asset)} />
-                <Stat label="Member Cap" value={String(vault.config.member_cap)} />
-                <Stat label="Currency" value={asset?.symbol ?? vault.config.token_symbol ?? 'USDC'} />
-              </div>
-
-              <div className="card-section">
-                <div className="progress">
-                  <div className="progress-bar" style={{ width: `${paidPct}%` }} />
-                </div>
-                <p className="progress-caption">{paidPct}% paid</p>
-              </div>
-            </div>
-          )}
-        </>
+      {wallet.connected && lifecycles.length === 0 && (
+        <EmptyState
+          title="No active circles"
+          description="You haven't joined any circles yet. Browse available circles to get started."
+        />
       )}
+
+      {wallet.connected &&
+        lifecycles.map((lifecycle) => (
+          <DashboardLifecycleCard
+            key={lifecycle.circleId}
+            lifecycle={lifecycle}
+            self={wallet.publicKey ?? ''}
+          />
+        ))}
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function DashboardLifecycleCard({
+  lifecycle: stored,
+  self,
+}: {
+  lifecycle: CircleLifecycle;
+  self: string;
+}) {
+  const { lifecycle, contribute, payout } = useCircleLifecycle({
+    circleId: stored.circleId,
+    tokenSymbol: stored.tokenSymbol,
+    contributionAmount: stored.contributionAmount,
+    memberCap: stored.memberCap,
+    totalRounds: stored.totalRounds,
+  });
+
+  const asset = getAsset(lifecycle.tokenSymbol);
+  const completed = lifecycle.state === 'Completed';
+  const pct = progressPercent(lifecycle);
+  const payoutAmount = formatAssetAmount(
+    String(BigInt(lifecycle.contributionAmount || '0') * BigInt(lifecycle.memberCap || 0)),
+    asset,
+  );
+
+  return (
+    <div className="card" data-testid={`dashboard-circle-${lifecycle.circleId}`}>
+      <h3 className="card-title">Circle #{lifecycle.circleId}</h3>
+      <div className="stat-grid">
+        <Stat label="Status" value={lifecycle.state} testId="dashboard-status" />
+        <Stat
+          label="Round"
+          value={`${lifecycle.currentRound} / ${lifecycle.totalRounds}`}
+          testId="dashboard-round"
+        />
+        <Stat
+          label="Members Paid"
+          value={`${lifecycle.membersPaidCurrentRound} / ${lifecycle.memberCap}`}
+        />
+        <Stat
+          label="Contribution"
+          value={formatAssetAmount(lifecycle.contributionAmount, asset)}
+        />
+        <Stat label="Currency" value={asset?.symbol ?? lifecycle.tokenSymbol ?? 'USDC'} />
+      </div>
+
+      {completed && (
+        <div className="completion-banner" data-testid="dashboard-completed">
+          Circle completed — every member has been paid.
+        </div>
+      )}
+
+      <div className="card-section">
+        <div className="progress">
+          <div className="progress-bar" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="progress-caption" data-testid="dashboard-progress">
+          {pct}% complete
+        </p>
+      </div>
+
+      <div className="detail-actions">
+        {canContribute(lifecycle) && (
+          <button
+            onClick={contribute}
+            className="btn btn-primary"
+            data-testid="contribute"
+          >
+            Contribute {formatAssetAmount(lifecycle.contributionAmount, asset)}
+          </button>
+        )}
+
+        {canReleasePayout(lifecycle) && (
+          <button
+            onClick={() => payout(self)}
+            className="btn btn-dark"
+            data-testid="release-payout"
+          >
+            Release Payout of {payoutAmount}
+          </button>
+        )}
+
+        {lifecycle.hasReceivedPot && (
+          <span className="payout-note" data-testid="dashboard-received-pot">
+            You have received the pot.
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  testId,
+}: {
+  label: string;
+  value: string;
+  testId?: string;
+}) {
   return (
     <div className="stat">
       <span className="stat-label">{label}</span>
       <br />
-      <span className="stat-value">{value}</span>
+      <span className="stat-value" data-testid={testId}>
+        {value}
+      </span>
     </div>
   );
 }
