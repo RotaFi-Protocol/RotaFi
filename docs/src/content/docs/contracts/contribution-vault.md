@@ -47,7 +47,7 @@ Opens the previously committed secret once every eligible member has committed. 
 
 Draws the lottery winner from the round's openings mixed with ledger data and releases the pot. The caller cannot choose or influence the winner.
 
-Can be called once every eligible member has revealed, or after the reveal window expires (partial reveals fall back to the still-binding commitments so funds can never be locked).
+Can be called once every eligible member has revealed, or after the reveal window expires (members who haven't revealed fall back to their still-binding commitments, so the pot can never be locked).
 
 ### `get_round_randomness() -> Option<RoundRandomness>`
 

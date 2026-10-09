@@ -372,6 +372,34 @@ fn test_draw_before_deadline_with_partial_reveals_rejected() {
     ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
 }
 
+#[test]
+fn test_draw_after_deadline_without_any_reveal_succeeds() {
+    let env = Env::default();
+    let (vault, _config, token_addr, members) = deploy_active_vault(&env);
+
+    for (i, member) in members.iter().enumerate() {
+        commit(&env, &vault, member, &secret(&env, i as u8 + 1));
+    }
+
+    let rnd = ContributionVaultClient::new(&env, &vault)
+        .get_round_randomness()
+        .unwrap();
+    env.ledger().set_timestamp(rnd.reveal_deadline + 1);
+
+    contribute_all(&env, &vault, &token_addr, &members);
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &vault).release_lottery_payout(&token_addr);
+
+    let client = ContributionVaultClient::new(&env, &vault);
+    let mut paid = 0u32;
+    for member in members.iter() {
+        if client.get_member(member).unwrap().has_received_pot {
+            paid += 1;
+        }
+    }
+    assert_eq!(paid, 1);
+}
+
 fn remaining_members(env: &Env, vault: &Address, members: &[Address; 3]) -> Vec<Address> {
     let client = ContributionVaultClient::new(env, vault);
     let mut remaining = Vec::new(env);

@@ -427,7 +427,7 @@ impl ContributionVault {
     /// If every eligible member revealed, the full secret set is used. If the
     /// reveal window expired first, non-revealing members contribute their
     /// still-binding commitment instead, so a member cannot lock the pot by
-    /// withholding a reveal.
+    /// withholding a reveal — even if nobody reveals at all.
     ///
     /// # Panics
     /// Panics if the vault is not active, contributions are still outstanding,
@@ -451,8 +451,7 @@ impl ContributionVault {
         let rnd = load_round_randomness(&env, vault.current_round, 0);
         let all_revealed = rnd.phase == LotteryPhase::Ready;
         let reveal_expired = rnd.phase == LotteryPhase::Revealing
-            && now >= rnd.reveal_deadline
-            && rnd.reveal_count > 0;
+            && now >= rnd.reveal_deadline;
         assert!(
             all_revealed || reveal_expired,
             "Lottery draw is not ready"
