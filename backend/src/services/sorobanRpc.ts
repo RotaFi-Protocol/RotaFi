@@ -29,6 +29,25 @@ export interface NetworkHealth {
   oldestLedger: number;
 }
 
+/**
+ * Raised when a Soroban simulation fails, either because the host rejected
+ * the invocation (e.g. the contract trapped) or because the RPC responded
+ * with an error.
+ */
+export class ContractCallError extends Error {
+  readonly contractId: string;
+  readonly method: string;
+  readonly diagnostics?: string;
+
+  constructor(contractId: string, method: string, message: string, diagnostics?: string) {
+    super(message);
+    this.name = 'ContractCallError';
+    this.contractId = contractId;
+    this.method = method;
+    this.diagnostics = diagnostics;
+  }
+}
+
 export class SorobanRpcClient {
   readonly rpcUrl: string;
   readonly networkPassphrase: string;
@@ -97,7 +116,20 @@ export class SorobanRpcClient {
       .setTimeout(30)
       .build();
 
-    return this.withTimeout(this.server.simulateTransaction(tx));
+    const simulation = await this.withTimeout(this.server.simulateTransaction(tx));
+
+    if (rpc.Api.isSimulationError(simulation)) {
+      throw new ContractCallError(
+        contractId,
+        method,
+        `Soroban call '${method}' failed: ${simulation.error}`,
+        (simulation as any).diagnosticEvents
+          ? JSON.stringify((simulation as any).diagnosticEvents)
+          : undefined,
+      );
+    }
+
+    return simulation;
   }
 
   /**
@@ -111,7 +143,11 @@ export class SorobanRpcClient {
     const simulation = await this.simulateCall(contractId, method, args);
     const result = (simulation as any).result;
     if (!result) {
-      throw new Error(`Soroban simulation for '${method}' returned no result`);
+      throw new ContractCallError(
+        contractId,
+        method,
+        `Soroban simulation for '${method}' returned no result`,
+      );
     }
     return scValToNative(result.retval) as T;
   }
