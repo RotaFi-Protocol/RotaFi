@@ -15,7 +15,7 @@ export default function CircleCard({ circle, onJoin }: CircleCardProps) {
   const asset = getAsset(circle.token_symbol || circle.token_address);
 
   return (
-    <div className="circle-card">
+    <div className="circle-card" data-testid={`circle-card-${circle.id}`}>
       <div className="circle-card-header">
         <span className="circle-card-id">Circle #{circle.id}</span>
         <span className="circle-card-meta">
@@ -36,7 +36,11 @@ export default function CircleCard({ circle, onJoin }: CircleCardProps) {
       </div>
 
       {onJoin && !circle.active && (
-        <button onClick={() => onJoin(circle.id)} className="btn btn-primary btn-block">
+        <button
+          onClick={() => onJoin(circle.id)}
+          className="btn btn-primary btn-block"
+          data-testid={`join-circle-${circle.id}`}
+        >
           Join Circle
         </button>
       )}

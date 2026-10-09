@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useWallet } from '@/hooks/useWallet';
 import WalletConnect from '@/components/WalletConnect';
 import CircleCard from '@/components/CircleCard';
@@ -19,10 +20,15 @@ const MOCK_CIRCLES: Circle[] = [
 const ALL_CURRENCIES = 'ALL';
 
 export default function HomePage() {
+  const router = useRouter();
   const { wallet, isLoading: walletLoading, error: walletError, connect, disconnect } = useWallet();
   const [circles, _setCircles] = useState<Circle[]>(MOCK_CIRCLES);
   const [currency, setCurrency] = useState<string>(ALL_CURRENCIES);
   const [loading] = useState(false);
+
+  const handleJoin = (id: number) => {
+    router.push(`/circles/${id}`);
+  };
 
   const visibleCircles =
     currency === ALL_CURRENCIES
@@ -57,6 +63,7 @@ export default function HomePage() {
             <select
               id="currency-filter"
               className="currency-select"
+              data-testid="currency-filter"
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
             >
@@ -84,12 +91,12 @@ export default function HomePage() {
             />
           )}
           {!loading && visibleCircles.length > 0 && (
-            <div className="circle-grid">
+            <div className="circle-grid" data-testid="circle-grid">
               {visibleCircles.map((circle) => (
                 <CircleCard
                   key={circle.id}
                   circle={circle}
-                  onJoin={wallet.connected ? (id) => alert(`Joining circle ${id}`) : undefined}
+                  onJoin={wallet.connected ? handleJoin : undefined}
                 />
               ))}
             </div>
