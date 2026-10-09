@@ -114,4 +114,28 @@ analysis:
    "unpaid" condition) is a separate call, so the default condition can persist
    across many `slash_default` calls.
 
+## Security assumptions
+
+The mechanism is only sound if the following hold. Each assumption lists
+whether the current contract *enforces* it, *assumes* it (no on-chain check),
+or *intends* it (dependency not yet wired up).
+
+| ID | Assumption | Status |
+|---|---|---|
+| **A1** | Collateral is at least large enough to make defaulting unprofitable over the remaining rounds. | Assumed — `min_collateral` is set per circle and only bounded by `ProtocolConfig` if the factory checks it; the vault does not enforce an obligation-coverage relationship |
+| **A2** | `slash_percent` is at most the governance-approved `slash_bps` and never exceeds 100. | Assumed — `slash_default` takes `slash_percent` as a raw caller argument with no bound |
+| **A3** | A member can be slashed at most once per round, and only for the current round. | Violated by design — repeated `slash_default` calls compound while the round stays open |
+| **A4** | Slashed collateral is redistributed to honest members or retained as compensation. | Not implemented — slashing only decrements accounting; tokens are not moved or paid out |
+| **A5** | Remaining collateral is returned to members at completion. | Not implemented — there is no exit/withdraw path for `collateral_staked` |
+| **A6** | `slash_default` records to `ReputationRegistry.record_default`. | Not wired — no cross-contract call exists in the vault |
+| **A7** | The token used is a well-behaved Stellar asset (no transfer fees, no rebasing, `transfer` reverts on failure). | Assumed — any circle token is accepted as a parameter |
+| **A8** | Ledger timestamps advance monotonically and can't be manipulated enough to bypass or accelerate the grace period. | Assumed — relies on Stellar core |
+| **A9** | The `ProtocolConfig` multisig is honest and a majority cannot be coerced; upgrade authority is not compromised. | Assumed — `k`-of-`n` trust |
+| **A10** | Member eligibility (`is_active && !has_received_pot`) is the correct set for both payout and slashing. | Enforced for payout; **not applied to slashing** — `slash_default` does not check `is_active` or `has_received_pot` |
+
+Assumptions **A3–A6** and **A10** are the load-bearing gaps: they are areas
+where the intended guarantee is stronger than what the code currently proves.
+They are analysed as attack classes in the sections that follow and revisited
+in [Residual risks](#residual-risks).
+
 <!-- END -->
