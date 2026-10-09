@@ -9,6 +9,11 @@ export const config = {
     rpcUrl: process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org',
     networkPassphrase:
       process.env.NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015',
+    // When enabled, read endpoints are served from the live Soroban RPC
+    // instead of the in-memory cache.
+    liveReads: process.env.SOROBAN_LIVE_READS === 'true',
+    // Per-request timeout for RPC calls, in milliseconds.
+    timeoutMs: parseInt(process.env.SOROBAN_RPC_TIMEOUT_MS || '10000', 10),
   },
 
   contracts: {
