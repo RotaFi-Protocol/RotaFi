@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useWallet } from '@/hooks/useWallet';
 import WalletConnect from '@/components/WalletConnect';
 import BidStatus from '@/components/BidStatus';
-import { LoadingSpinner, ErrorState, EmptyState } from '@/components/States';
+import PageHeader from '@/components/PageHeader';
+import { LoadingSpinner, EmptyState } from '@/components/States';
 import type { Bid } from '@/types';
 
 const MOCK_BIDS: Bid[] = [
@@ -23,15 +24,9 @@ export default function BidsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Bids</h1>
-          <p style={{ color: '#6B7280', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-            Submit sealed bids for auction-style circles
-          </p>
-        </div>
+      <PageHeader title="Bids" subtitle="Submit sealed bids for auction-style circles">
         <WalletConnect wallet={wallet} isLoading={walletLoading} error={walletError} onConnect={connect} onDisconnect={disconnect} />
-      </div>
+      </PageHeader>
 
       {!wallet.connected && !walletLoading && (
         <EmptyState

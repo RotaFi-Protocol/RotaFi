@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useWallet } from '@/hooks/useWallet';
 import WalletConnect from '@/components/WalletConnect';
 import CircleCard from '@/components/CircleCard';
-import { LoadingSpinner, ErrorState, EmptyState } from '@/components/States';
+import PageHeader from '@/components/PageHeader';
+import { LoadingSpinner, EmptyState } from '@/components/States';
 import type { Circle } from '@/types';
 
 const MOCK_CIRCLES: Circle[] = [
@@ -20,13 +21,7 @@ export default function HomePage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Circle Browser</h1>
-          <p style={{ color: '#6B7280', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-            Discover and join ROSCA circles on Stellar
-          </p>
-        </div>
+      <PageHeader title="Circle Browser" subtitle="Discover and join ROSCA circles on Stellar">
         <WalletConnect
           wallet={wallet}
           isLoading={walletLoading}
@@ -34,7 +29,7 @@ export default function HomePage() {
           onConnect={connect}
           onDisconnect={disconnect}
         />
-      </div>
+      </PageHeader>
 
       {!wallet.connected && !walletLoading && (
         <EmptyState
@@ -53,7 +48,7 @@ export default function HomePage() {
             />
           )}
           {!loading && circles.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+            <div className="circle-grid">
               {circles.map((circle) => (
                 <CircleCard
                   key={circle.id}

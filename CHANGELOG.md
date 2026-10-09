@@ -41,6 +41,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Bid engine abuse threat model covering sealed-bid frontrunning, round-boundary bid sniping and Sybil/non-member bidding, with abuse vectors F1–F8, security assumptions A1–A8, on-chain mitigations M1–M9, a threat matrix, residual risks O1–O6 and a hardening backlog, all mapped to the enforced commit-reveal auction (`docs/src/content/docs/security/bid-engine-abuse-threat-model.md`)
 - Collateral slashing threat model covering security assumptions, economic incentives and default-profitability analysis, griefing attack vectors (repeat/unbounded slashing, late-payer front-running, stale-round slashing), collusion scenarios (winner-then-default, organizer-fronted defaulters, governance capture), mitigation strategies, a threat matrix, and a prioritized hardening backlog (`docs/src/content/docs/security/collateral-slashing-threat-model.md`)
 
+### Changed
+
+#### Frontend
+- Mobile-responsive design pass across the circle browser grid, dashboard cards, bid submission, wallet connect and navigation, with adaptive single-column layouts, a sticky scrollable header and active-route highlighting
+- Centralised responsive design tokens, reusable button/card/state primitives and `44px` minimum touch targets in `globals.css`
+- Safe-area (`viewport-fit=cover`) insets, dvh sizing, reduced-motion support and explicit `iOS Safari`/`Chrome Android` browser targets
+- Page headers, grids and long on-chain identifiers now reflow without horizontal overflow on small screens
+
 ---
 
 ## [0.1.0] — 2026-10-01
