@@ -66,6 +66,12 @@ button {
 
 h1, h2, h3, h4, p { overflow-wrap: anywhere; }
 
+pre, code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+}
+
 .app-header {
   position: sticky;
   top: 0;
@@ -447,7 +453,10 @@ h1, h2, h3, h4, p { overflow-wrap: anywhere; }
 
 .detail-field-value { font-weight: 500; }
 
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
 
 .detail-status-active { color: var(--color-success); font-weight: 500; }
 .detail-status-setup { color: var(--color-warning); font-weight: 500; }
