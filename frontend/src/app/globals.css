@@ -162,6 +162,19 @@ h1, h2, h3, h4, p { overflow-wrap: anywhere; }
   gap: var(--space-4);
 }
 
+.circle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .circle-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
