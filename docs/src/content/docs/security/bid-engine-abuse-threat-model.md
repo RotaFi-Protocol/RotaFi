@@ -288,3 +288,27 @@ the reveal deadline passes, so a withheld reveal (or a completely empty commit
 phase) costs the auction its liveness only until `reveal_deadline` — never
 forever. **Tests:** `test_resolve_after_deadline_with_partial_reveals_succeeds`,
 `test_resolve_with_no_valid_bids_rejected`.
+
+## Security assumptions
+
+The mechanism is only sound if the following hold. Each assumption lists whether
+the current contract *enforces* it, *assumes* it (no on-chain check), or
+*intends* it (dependency not yet wired up).
+
+| ID | Assumption | Status |
+|---|---|---|
+| **A1** | The `members` roster passed to `start_auction` is the real circle membership. | Assumed — the roster is sourced from the caller party; see O1 |
+| **A2** | A member keeps their `nonce` secret until the reveal phase. | Assumed — a leaked nonce reveals that member's discount early, but never past the committed digest |
+| **A3** | Ledger timestamps advance monotonically and can't be shifted enough to bypass the commit/reveal deadlines. | Assumed — relies on Stellar core |
+| **A4** | The `organizer` key is held honestly and only used to open legitimate auctions. | Assumed — `k`-of-`n` style personal key custody |
+| **A5** | A commitment binds `(contract, member, round, discount, nonce)` and cannot be replayed elsewhere. | Enforced — `bid_commitment_digest` mixes all five fields |
+| **A6** | A member can reveal at most one bid, and only the discounts in `[min, max]` are valid. | Enforced — duplicate reveals and out-of-range discounts are rejected |
+| **A7** | Only roster members bid, and each member accounts for at most one bid. | Enforced — roster check plus per-member maps |
+| **A8** | The auction resolves exactly once, for the round it was opened for, after a bounded window. | Enforced — `LAST_ROUND`, round binding, and the reveal deadline |
+
+Assumptions **A1–A4** are trust placed in things outside the auction contract
+itself (enrollment, off-chain secret custody, the ledger clock, and the
+organizer's key). They are analysed as residual risks in
+[Residual risks](#residual-risks). Assumptions **A5–A8** are load-bearing and
+fully enforced by the hardened contract — frontrunning, sniping and Sybil
+bidding all attack exactly these enforced invariants.
