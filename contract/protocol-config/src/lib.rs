@@ -60,6 +60,7 @@ impl ProtocolConfig {
     /// # Panics
     /// Panics if already initialized, if no owners are supplied, or if the
     /// threshold is zero or greater than the number of owners.
+    #[allow(deprecated)]
     pub fn initialize(env: Env, owners: Vec<Address>, threshold: u32, params: ProtocolParams) {
         assert!(
             !env.storage().instance().has(&CONFIG),
@@ -413,3 +414,6 @@ fn require_multisig(env: &Env, approvers: &Vec<Address>) {
 
     assert!(approvals >= threshold, "Insufficient multisig approvals");
 }
+
+#[cfg(test)]
+mod test;
