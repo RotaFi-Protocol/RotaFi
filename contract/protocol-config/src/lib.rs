@@ -66,7 +66,7 @@ impl ProtocolConfig {
             !env.storage().instance().has(&CONFIG),
             "Protocol config already initialized"
         );
-        assert!(owners.len() > 0, "At least one owner required");
+        assert!(!owners.is_empty(), "At least one owner required");
         assert!(threshold > 0, "Threshold must be positive");
         assert!(
             threshold <= owners.len(),
