@@ -90,6 +90,15 @@ export class ChainReader {
     );
     return parseCircle(raw);
   }
+
+  /** Returns the total number of circles ever created by the factory. */
+  async getCircleCount(): Promise<number> {
+    const raw = await this.client.readContract<number | bigint>(
+      this.client.contracts.circleFactory,
+      'circle_count',
+    );
+    return toNumber(raw);
+  }
 }
 
 export function createChainReader(client: SorobanRpcClient = createSorobanClient()): ChainReader {
