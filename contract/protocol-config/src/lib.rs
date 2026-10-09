@@ -147,6 +147,79 @@ impl ProtocolConfig {
         env.events()
             .publish((symbol_short!("cfg_upd"),), (approvers, new_params));
     }
+
+    /// Updates the protocol fee (basis points). Requires multisig approval.
+    #[allow(deprecated)]
+    pub fn set_fee_bps(env: Env, approvers: Vec<Address>, fee_bps: u32) {
+        require_multisig(&env, &approvers);
+
+        let mut params = load_params(&env);
+        params.fee_bps = fee_bps;
+        params.require_valid();
+        store_params(&env, &params);
+
+        env.events()
+            .publish((symbol_short!("fee_set"),), (approvers, fee_bps));
+    }
+
+    /// Updates the default collateral slash (basis points). Requires multisig
+    /// approval.
+    #[allow(deprecated)]
+    pub fn set_slash_bps(env: Env, approvers: Vec<Address>, slash_bps: u32) {
+        require_multisig(&env, &approvers);
+
+        let mut params = load_params(&env);
+        params.slash_bps = slash_bps;
+        params.require_valid();
+        store_params(&env, &params);
+
+        env.events()
+            .publish((symbol_short!("slsh_set"),), (approvers, slash_bps));
+    }
+
+    /// Updates the allowed member-cap bounds. Requires multisig approval.
+    #[allow(deprecated)]
+    pub fn set_member_cap_bounds(
+        env: Env,
+        approvers: Vec<Address>,
+        min_member_cap: u32,
+        max_member_cap: u32,
+    ) {
+        require_multisig(&env, &approvers);
+
+        let mut params = load_params(&env);
+        params.min_member_cap = min_member_cap;
+        params.max_member_cap = max_member_cap;
+        params.require_valid();
+        store_params(&env, &params);
+
+        env.events().publish(
+            (symbol_short!("cap_set"),),
+            (approvers, min_member_cap, max_member_cap),
+        );
+    }
+
+    /// Updates the allowed collateral bounds. Requires multisig approval.
+    #[allow(deprecated)]
+    pub fn set_collateral_bounds(
+        env: Env,
+        approvers: Vec<Address>,
+        min_collateral: i128,
+        max_collateral: i128,
+    ) {
+        require_multisig(&env, &approvers);
+
+        let mut params = load_params(&env);
+        params.min_collateral = min_collateral;
+        params.max_collateral = max_collateral;
+        params.require_valid();
+        store_params(&env, &params);
+
+        env.events().publish(
+            (symbol_short!("col_set"),),
+            (approvers, min_collateral, max_collateral),
+        );
+    }
 }
 
 impl ProtocolParams {
@@ -175,6 +248,16 @@ impl ProtocolParams {
             "slash_bps exceeds maximum"
         );
     }
+}
+
+/// Loads the current parameter set.
+fn load_params(env: &Env) -> ProtocolParams {
+    env.storage().instance().get(&CONFIG).unwrap()
+}
+
+/// Persists an updated parameter set.
+fn store_params(env: &Env, params: &ProtocolParams) {
+    env.storage().instance().set(&CONFIG, params);
 }
 
 /// Returns true when `who` appears in `owners`.
