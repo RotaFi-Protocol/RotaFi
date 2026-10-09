@@ -2,6 +2,12 @@
   "name": "rotafi-frontend",
   "version": "0.1.0",
   "private": true,
+  "browserslist": [
+    "last 2 iOS major versions",
+    "last 2 ChromeAndroid major versions",
+    "last 2 Chrome versions",
+    "not dead"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
