@@ -63,6 +63,28 @@ docs/         Documentation (Astro Starlight)    — protocol overview, API refe
 
 ## Quick Start
 
+### Docker Compose
+
+Spin up the Soroban sandbox, backend, keeper, and frontend together — only Docker is required:
+
+```bash
+git clone https://github.com/RotaFi-Protocol/RotaFi.git
+cd RotaFi
+cp docker/.env.example .env
+docker compose up --build
+```
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3001 |
+| Backend API | http://localhost:3000/healthz |
+| Soroban RPC | http://localhost:8000/rpc |
+
+Every service has a health check and bind-mounts its source for hot reload. See the
+[Docker Compose guide](https://rotafi-protocol.github.io/RotaFi/guides/docker-compose/) for details.
+
+### Manual setup
+
 ```bash
 git clone https://github.com/RotaFi-Protocol/RotaFi.git
 cd rotafi

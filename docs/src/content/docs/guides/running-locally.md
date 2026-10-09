@@ -17,6 +17,20 @@ git clone https://github.com/RotaFi-Protocol/RotaFi.git
 cd rotafi
 ```
 
+## Run everything with Docker Compose
+
+If you have Docker installed you can skip the manual steps below and start the
+sandbox, backend, keeper, and frontend together:
+
+```bash
+cp docker/.env.example .env
+docker compose up --build
+```
+
+See [Docker Compose](/guides/docker-compose) for the service table, health
+checks, hot reload details, and how to deploy the contracts to the local
+sandbox.
+
 ### 1. Contracts
 
 ```bash

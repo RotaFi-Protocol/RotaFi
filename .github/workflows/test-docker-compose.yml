@@ -1,0 +1,50 @@
+name: Docker Compose
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docker-compose.yml'
+      - 'docker/**'
+      - 'backend/Dockerfile'
+      - 'keeper/Dockerfile'
+      - 'frontend/Dockerfile'
+      - '.github/workflows/test-docker-compose.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'docker-compose.yml'
+      - 'docker/**'
+      - 'backend/Dockerfile'
+      - 'keeper/Dockerfile'
+      - 'frontend/Dockerfile'
+
+jobs:
+  validate:
+    name: Validate compose config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate default services
+        run: docker compose config --quiet
+
+      - name: Validate contracts profile
+        run: docker compose --profile contracts config --quiet
+
+  hadolint:
+    name: Lint ${{ matrix.dockerfile }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dockerfile:
+          - backend/Dockerfile
+          - keeper/Dockerfile
+          - frontend/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.dockerfile }}
+          failure-threshold: error

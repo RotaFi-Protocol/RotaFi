@@ -1,0 +1,185 @@
+# RotaFi — local development stack
+#
+# Brings up a self-contained environment:
+#   soroban  - Stellar Quickstart local network with Soroban RPC (the sandbox)
+#   backend  - RotaFi REST API (Express + TypeScript, hot reload)
+#   keeper   - RotaFi keeper bot (round advancement, hot reload)
+#   frontend - RotaFi web UI (Next.js, hot reload)
+#
+# Quick start:
+#   cp docker/.env.example .env
+#   docker compose up --build
+#
+# Optional profiles:
+#   contracts - build and deploy the Soroban contracts to the local sandbox
+#               docker compose --profile contracts run --rm contracts
+name: rotafi
+
+services:
+  # ---------------------------------------------------------------- sandbox
+  soroban:
+    image: stellar/quickstart:${QUICKSTART_TAG:-testing}
+    container_name: rotafi-soroban
+    command: ["--local"]
+    environment:
+      ENABLE: "core,horizon,rpc"
+    ports:
+      - "${SOROBAN_PORT:-8000}:8000"
+    volumes:
+      - soroban-data:/opt/stellar
+      - ./docker/soroban-healthcheck.sh:/usr/local/bin/soroban-healthcheck.sh:ro
+    healthcheck:
+      test: ["CMD", "bash", "/usr/local/bin/soroban-healthcheck.sh"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+    networks:
+      - rotafi
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------- api
+  backend:
+    build:
+      context: ./backend
+      target: development
+    container_name: rotafi-backend
+    command: ["sh", "/usr/local/bin/with-deployments.sh", "npm", "run", "dev"]
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      SOROBAN_RPC_URL: http://soroban:8000/rpc
+      NETWORK_PASSPHRASE: ${NETWORK_PASSPHRASE:-Standalone Network ; February 2017}
+      CIRCLE_FACTORY_ADDRESS: ${CIRCLE_FACTORY_ADDRESS:-}
+      CONTRIBUTION_VAULT_ADDRESS: ${CONTRIBUTION_VAULT_ADDRESS:-}
+      REPUTATION_REGISTRY_ADDRESS: ${REPUTATION_REGISTRY_ADDRESS:-}
+      BID_ENGINE_ADDRESS: ${BID_ENGINE_ADDRESS:-}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    volumes:
+      - ./backend:/app
+      - backend-node-modules:/app/node_modules
+      - ./docker/with-deployments.sh:/usr/local/bin/with-deployments.sh:ro
+      - ./docker/generated:/deployments:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    depends_on:
+      soroban:
+        condition: service_healthy
+    networks:
+      - rotafi
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- keeper
+  keeper:
+    build:
+      context: ./keeper
+      target: development
+    container_name: rotafi-keeper
+    command: ["sh", "/usr/local/bin/with-deployments.sh", "npm", "run", "dev"]
+    environment:
+      NODE_ENV: development
+      SOROBAN_RPC_URL: http://soroban:8000/rpc
+      CONTRIBUTION_VAULT_ADDRESS: ${CONTRIBUTION_VAULT_ADDRESS:-}
+      POLL_INTERVAL_MS: ${POLL_INTERVAL_MS:-30000}
+      KEEPER_HEALTH_PORT: "3002"
+    volumes:
+      - ./keeper:/app
+      - keeper-node-modules:/app/node_modules
+      - ./docker/with-deployments.sh:/usr/local/bin/with-deployments.sh:ro
+      - ./docker/generated:/deployments:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3002/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    depends_on:
+      soroban:
+        condition: service_healthy
+    networks:
+      - rotafi
+    restart: unless-stopped
+
+  # -------------------------------------------------------------- frontend
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    container_name: rotafi-frontend
+    command: ["sh", "/usr/local/bin/with-deployments.sh", "npm", "run", "dev"]
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-3000}
+      NEXT_PUBLIC_SOROBAN_RPC_URL: http://localhost:${SOROBAN_PORT:-8000}/rpc
+      NEXT_PUBLIC_NETWORK_PASSPHRASE: ${NETWORK_PASSPHRASE:-Standalone Network ; February 2017}
+      NEXT_PUBLIC_CIRCLE_FACTORY_ADDRESS: ${CIRCLE_FACTORY_ADDRESS:-}
+      NEXT_PUBLIC_CONTRIBUTION_VAULT_ADDRESS: ${CONTRIBUTION_VAULT_ADDRESS:-}
+      NEXT_PUBLIC_REPUTATION_REGISTRY_ADDRESS: ${REPUTATION_REGISTRY_ADDRESS:-}
+      NEXT_PUBLIC_BID_ENGINE_ADDRESS: ${BID_ENGINE_ADDRESS:-}
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-3001}:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - frontend-next:/app/.next
+      - ./docker/with-deployments.sh:/usr/local/bin/with-deployments.sh:ro
+      - ./docker/generated:/deployments:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - rotafi
+    restart: unless-stopped
+
+  # ------------------------------------------------- optional: contracts
+  # One-shot job that builds the Rust contracts and deploys them to the local
+  # sandbox. Enable with the `contracts` profile:
+  #   docker compose --profile contracts run --rm contracts
+  contracts:
+    image: stellar/stellar-cli:${STELLAR_CLI_TAG:-latest}
+    container_name: rotafi-contracts
+    profiles: ["contracts"]
+    entrypoint: ["/bin/bash", "/scripts/deploy-contracts.sh"]
+    working_dir: /source
+    environment:
+      STELLAR_RPC_URL: http://soroban:8000/rpc
+      NETWORK_PASSPHRASE: ${NETWORK_PASSPHRASE:-Standalone Network ; February 2017}
+      DEPLOYMENTS_FILE: /deployments/deployed.env
+    volumes:
+      - ./contract:/source
+      - ./docker/deploy-contracts.sh:/scripts/deploy-contracts.sh:ro
+      - ./docker/generated:/deployments
+      - stellar-cli-config:/config
+      - stellar-cli-data:/data
+      - stellar-cli-home:/stellar
+    depends_on:
+      soroban:
+        condition: service_healthy
+    networks:
+      - rotafi
+
+networks:
+  rotafi:
+    driver: bridge
+
+volumes:
+  soroban-data:
+  backend-node-modules:
+  keeper-node-modules:
+  frontend-node-modules:
+  frontend-next:
+  stellar-cli-config:
+  stellar-cli-data:
+  stellar-cli-home:
