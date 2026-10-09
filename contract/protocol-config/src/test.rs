@@ -2,7 +2,7 @@
 
 use super::*;
 use soroban_sdk::testutils::Address as _;
-use soroban_sdk::{Address, Env, Vec};
+use soroban_sdk::{Address, BytesN, Env, Vec};
 
 fn deploy(env: &Env) -> Address {
     env.register(ProtocolConfig, ())
@@ -355,4 +355,127 @@ fn test_set_collateral_bounds_negative_panics() {
     let client = ProtocolConfigClient::new(&env, &contract_id);
 
     client.set_collateral_bounds(&first_two(&env, &owners), &-1i128, &500i128);
+}
+
+#[test]
+fn test_add_owner() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let count_before = client.get_owners().len();
+    let newcomer = Address::generate(&env);
+    client.add_owner(&first_two(&env, &owners), &newcomer);
+
+    assert_eq!(client.get_owners().len(), count_before + 1);
+    assert!(client.is_owner(&newcomer));
+}
+
+#[test]
+#[should_panic(expected = "Already an owner")]
+fn test_add_owner_duplicate_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let existing = owners.get(0).unwrap();
+    client.add_owner(&first_two(&env, &owners), &existing);
+}
+
+#[test]
+fn test_remove_owner() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let third = owners.get(2).unwrap();
+    client.remove_owner(&first_two(&env, &owners), &third);
+
+    assert!(!client.is_owner(&third));
+    assert_eq!(client.get_owners().len(), 2);
+}
+
+#[test]
+#[should_panic(expected = "Address is not an owner")]
+fn test_remove_owner_unknown_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.remove_owner(&first_two(&env, &owners), &Address::generate(&env));
+}
+
+#[test]
+#[should_panic(expected = "Removal would drop below threshold")]
+fn test_remove_owner_below_threshold_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 3);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let third = owners.get(2).unwrap();
+    client.remove_owner(&owners, &third);
+}
+
+#[test]
+fn test_set_threshold() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_threshold(&first_two(&env, &owners), &3u32);
+
+    assert_eq!(client.get_threshold(), 3);
+}
+
+#[test]
+#[should_panic(expected = "Threshold must be positive")]
+fn test_set_threshold_zero_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_threshold(&first_two(&env, &owners), &0u32);
+}
+
+#[test]
+#[should_panic(expected = "Threshold cannot exceed owner count")]
+fn test_set_threshold_exceeds_owners_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    client.set_threshold(&first_two(&env, &owners), &4u32);
+}
+
+#[test]
+#[should_panic(expected = "Insufficient multisig approvals")]
+fn test_upgrade_insufficient_approvals_panics() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (contract_id, owners) = initialized(&env, 3);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let mut approvers = Vec::new(&env);
+    approvers.push_back(owners.get(0).unwrap());
+    let wasm_hash: BytesN<32> = BytesN::from_array(&env, &[0u8; 32]);
+    client.upgrade(&approvers, &wasm_hash);
+}
+
+#[test]
+#[should_panic]
+fn test_upgrade_requires_authorization() {
+    let env = Env::default();
+    let (contract_id, owners) = initialized(&env, 2);
+    let client = ProtocolConfigClient::new(&env, &contract_id);
+
+    let wasm_hash: BytesN<32> = BytesN::from_array(&env, &[0u8; 32]);
+    client.upgrade(&first_two(&env, &owners), &wasm_hash);
 }
