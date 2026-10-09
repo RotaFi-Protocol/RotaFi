@@ -209,4 +209,65 @@ malicious organizer can deliberately set `k` near zero to make defection cheap
 for a colluding set of members, or set a long round to maximize the temptation
 window. Parameter governance is a first-class economic control, not a detail.
 
+## Griefing attacks
+
+A griefing attack is one where the attacker's own loss is small relative to the
+damage inflicted on others. Slashing is a rich target because the caller
+controls `slash_percent`, the frequency, and the timing — while paying only a
+gas fee.
+
+### G1. Repeat-slash drain of a single defaulter
+
+`slash_default` neither advances the round nor records "already slashed". As
+long as the grace period is over and the target has not paid, the ledger is:
+
+- repeated calls during the *same* round re-enter before any payout or round
+  transition, so the check `!has_paid` stays true;
+- every call again runs `collateral_staked = collateral_staked − collateral_staked · p / 100`.
+
+Consequence: with the reference keeper rate (`p = 0.5`), a bond is halved per
+call and driven toward zero in the same round. With `p = 1.0` it is wiped in a
+**single call**. This converts a proportionate penalty (one per missed round)
+into an unlimited one, and can be performed by any address, not just a monitor.
+
+### G2. Reckless/unbounded slash percentage
+
+The caller supplies `slash_percent`; there is no clamp to `[0, 100]` at call
+time and no read of the governance `slash_bps` from `ProtocolConfig`. The
+stated contract safety is `MAX_SLASH_BPS`, but the vault never consults it.
+Passing `100` burns the full bond immediately; passing `> 100` attempts to
+deduct more than the balance, whose behaviour depends on the build's overflow
+handling (wrap vs. panic). Either way, these inputs are reachable by any
+caller, so the bounds must be enforced at call time rather than assumed.
+
+### G3. Late-payer front-running
+
+A member who intends to submit late in the grace window can be beaten to the
+post by an attacker who fires `slash_default` the moment grace expires. The
+payment then lands after the slash and the member loses bond despite ultimately
+honouring the round. Because there is no revocation or appeal path, the bond is
+gone.
+
+### G4. Post-completion and stale-round slashing
+
+`slash_default` does not assert the vault is `Active`, nor that the defaulter
+is `is_active` or `has_received_pot`. After the final payout bumps
+`current_round` past `total_rounds` (`Completed`), the "not paid this round"
+and "grace ended" conditions can still be satisfied, so leftover bonds can be
+slashed after the circle has finished — grief that has no economic purpose.
+
+### G5. Zero-rate reputation pollution
+
+`slash_percent = 0` still increments `rounds_missed` and emits a `slash` event
+while moving no funds. If `rounds_missed` ever feeds `ReputationRegistry`
+(`record_default` / `get_rating`), this becomes a cheap way to deflate an
+honest member's cross-circle reputation for the price of gas.
+
+### G6. Contribution-marker probing
+
+`has_paid` and member state are public, so an attacker can scan a circle for
+the members who have *not* yet paid during a grace window and target slashes
+(or payment-flooding of the RPC) at exactly that cohort, maximising the chance
+of hitting the final round before genuine payment lands.
+
 <!-- END -->
