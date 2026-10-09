@@ -539,4 +539,29 @@ Before the mechanism should be promoted to mainnet funds, it must pass all of:
    is reflected in reputation (M5).
 5. Members can always retrieve their remaining collateral at completion (M4).
 
-<!-- END -->
+## Conclusion
+
+The collateral-slashing mechanism is sound only when the configured bond
+exceeds the defaulter's remaining obligation. Every serious attack in this
+model — winner-then-default, organizer fronting, coalition-wide default, and
+the repeat-slash griefing that currently lets any address drain a bond in one
+round — follows from configurations or assumptions where that condition fails
+or is unenforced.
+
+The off-chain defaults (zero- or 50%-slash, no obligation check, no state
+binding) are *products of the current configuration and contracts*, not laws.
+Closing the mechanism means moving the safeguards on-chain: enforce bond
+coverage at creation, bound and make slashing idempotent, route slashed value
+to victims, refund collateral at completion, and record defaults in
+reputation. With those measured and in place, the mechanism transitions from a
+partly-trusted penalty to the deterrence backbone ROSCA members actually rely
+on.
+
+This threat model is a living document: when the P0/P1 hardenings land,
+re-baseline the threat matrix and update this page in the same change.
+
+---
+
+*Maintainers: keep the numeric examples above in sync with the contract test
+configuration in `contract/contribution-vault/src/test.rs` whenever it
+changes.*
