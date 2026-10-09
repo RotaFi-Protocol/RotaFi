@@ -132,6 +132,36 @@ h1, h2, h3, h4, p { overflow-wrap: anywhere; }
   padding: var(--space-6) max(var(--space-4), var(--safe-left)) var(--space-6) max(var(--space-4), var(--safe-right));
 }
 
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6);
+}
+
+.page-heading { min-width: 0; }
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.page-subtitle {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin: var(--space-1) 0 0;
+}
+
+.page-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -155,6 +185,15 @@ h1, h2, h3, h4, p { overflow-wrap: anywhere; }
     padding-top: var(--space-5);
     padding-bottom: calc(var(--space-5) + var(--safe-bottom));
   }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  .page-header .wallet-connect { width: 100%; }
 }
 
 @media (max-width: 400px) {
