@@ -1,4 +1,4 @@
-import { nativeToScVal } from '@stellar/stellar-sdk';
+import { Address, nativeToScVal } from '@stellar/stellar-sdk';
 import { ContractResult, createSorobanClient, SorobanRpcClient } from './sorobanRpc';
 
 export interface CircleConfig {
@@ -136,6 +136,28 @@ export function parseVault(raw: unknown): Vault {
   };
 }
 
+export interface ReputationScore {
+  address: string;
+  circles_joined: number;
+  circles_completed: number;
+  defaults: number;
+  total_slashed: string;
+  last_updated: string;
+}
+
+export function parseReputationScore(raw: unknown): ReputationScore | null {
+  if (raw === null || raw === undefined) return null;
+  const score = raw as Record<string, any>;
+  return {
+    address: String(score.address),
+    circles_joined: toNumber(score.circles_joined),
+    circles_completed: toNumber(score.circles_completed),
+    defaults: toNumber(score.defaults),
+    total_slashed: toBigIntString(score.total_slashed),
+    last_updated: toBigIntString(score.last_updated),
+  };
+}
+
 export class ChainReader {
   constructor(private readonly client: SorobanRpcClient) {}
 
@@ -182,6 +204,26 @@ export class ChainReader {
     );
     if (!result.ok) return result;
     return { ok: true, value: parseVault(result.value) };
+  }
+
+  /** Reads a member's reputation record, or null if none exists. */
+  async getReputationScore(address: string): Promise<ReputationScore | null> {
+    const raw = await this.client.readContract(
+      this.client.contracts.reputationRegistry,
+      'get_score',
+      [new Address(address).toScVal()],
+    );
+    return parseReputationScore(raw);
+  }
+
+  /** Returns a member's reputation rating (0-100, higher is better). */
+  async getReputationRating(address: string): Promise<number> {
+    const raw = await this.client.readContract<number | bigint>(
+      this.client.contracts.reputationRegistry,
+      'get_rating',
+      [new Address(address).toScVal()],
+    );
+    return toNumber(raw);
   }
 }
 
