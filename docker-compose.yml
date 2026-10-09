@@ -101,6 +101,42 @@ services:
       - rotafi
     restart: unless-stopped
 
+  # -------------------------------------------------------------- frontend
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    container_name: rotafi-frontend
+    command: ["npm", "run", "dev"]
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-3000}
+      NEXT_PUBLIC_SOROBAN_RPC_URL: http://localhost:${SOROBAN_PORT:-8000}/rpc
+      NEXT_PUBLIC_NETWORK_PASSPHRASE: ${NETWORK_PASSPHRASE:-Standalone Network ; February 2017}
+      NEXT_PUBLIC_CIRCLE_FACTORY_ADDRESS: ${CIRCLE_FACTORY_ADDRESS:-}
+      NEXT_PUBLIC_CONTRIBUTION_VAULT_ADDRESS: ${CONTRIBUTION_VAULT_ADDRESS:-}
+      NEXT_PUBLIC_REPUTATION_REGISTRY_ADDRESS: ${REPUTATION_REGISTRY_ADDRESS:-}
+      NEXT_PUBLIC_BID_ENGINE_ADDRESS: ${BID_ENGINE_ADDRESS:-}
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "${FRONTEND_PORT:-3001}:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - frontend-next:/app/.next
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - rotafi
+    restart: unless-stopped
+
 networks:
   rotafi:
     driver: bridge
@@ -109,3 +145,5 @@ volumes:
   soroban-data:
   backend-node-modules:
   keeper-node-modules:
+  frontend-node-modules:
+  frontend-next:
