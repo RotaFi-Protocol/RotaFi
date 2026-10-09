@@ -53,4 +53,63 @@ pub struct MultisigConfig {
 pub struct ProtocolConfig;
 
 #[contractimpl]
-impl ProtocolConfig {}
+impl ProtocolConfig {
+    /// Initializes the configuration with the protocol's initial multisig
+    /// owner set and starting parameters.
+    ///
+    /// # Panics
+    /// Panics if already initialized, if no owners are supplied, or if the
+    /// threshold is zero or greater than the number of owners.
+    pub fn initialize(env: Env, owners: Vec<Address>, threshold: u32, params: ProtocolParams) {
+        assert!(
+            !env.storage().instance().has(&CONFIG),
+            "Protocol config already initialized"
+        );
+        assert!(owners.len() > 0, "At least one owner required");
+        assert!(threshold > 0, "Threshold must be positive");
+        assert!(
+            threshold <= owners.len(),
+            "Threshold cannot exceed owner count"
+        );
+
+        env.storage().instance().set(&CONFIG, &params);
+        env.storage().instance().set(&OWNERS, &owners);
+        env.storage().instance().set(&THRESHOLD, &threshold);
+
+        env.events()
+            .publish((symbol_short!("cfg_init"),), (threshold, owners));
+    }
+
+    /// Returns the active multisig owners.
+    pub fn get_owners(env: Env) -> Vec<Address> {
+        env.storage()
+            .instance()
+            .get(&OWNERS)
+            .unwrap_or(Vec::new(&env))
+    }
+
+    /// Returns the number of owner approvals required to make a change.
+    pub fn get_threshold(env: Env) -> u32 {
+        env.storage().instance().get(&THRESHOLD).unwrap_or(0)
+    }
+
+    /// Returns true if `who` is currently a multisig owner.
+    pub fn is_owner(env: Env, who: Address) -> bool {
+        let owners: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&OWNERS)
+            .unwrap_or(Vec::new(&env));
+        owner_exists(&owners, &who)
+    }
+}
+
+/// Returns true when `who` appears in `owners`.
+fn owner_exists(owners: &Vec<Address>, who: &Address) -> bool {
+    for owner in owners.iter() {
+        if owner == *who {
+            return true;
+        }
+    }
+    false
+}
