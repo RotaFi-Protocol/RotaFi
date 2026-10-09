@@ -509,4 +509,34 @@ Decisions that need a governance call before these are closed: where slashed
 value flows (M3), whether non-lottery payout methods remain enabled (O2), and
 whether token/asset whitelisting is protocol policy (O3).
 
+## Recommended hardening backlog
+
+Priority-ordered work items that close the assumption gaps. Each maps to a
+mitigation above and the source function it touches.
+
+| Priority | Work item | Mitigation | Touches |
+|---|---|---|---|
+| P0 | Enforce obligation-coverage at circle/vault creation: reject `min_collateral < (T−1)·c` | M1 | `CircleConfig.require_valid` / `VaultConfig.require_valid` |
+| P0 | Bound `slash_percent` to governed `slash_bps` and `[0,100]`; store last-slash round and reject repeats | M2 | `slash_default` |
+| P0 | Assert `state == Active` and target eligibility (`is_active`, not already paid out) in slashing | M6 | `slash_default` |
+| P1 | Route slashed value to the honoured members or against remaining obligations | M3 | `slash_default` + payout paths |
+| P1 | Add completion refund of `collateral_staked` | M4 | new `withdraw`/completion fn |
+| P1 | Call `ReputationRegistry.record_default` from the vault | M5 | `slash_default` |
+| P2 | Enforce `ProtocolConfig` collateral bounds at circle creation | M7 | `CircleFactory` → `ProtocolConfig` read |
+| P2 | Governance rate-of-change limit + upgrade timelock | M8 | `ProtocolConfig.set_slash_bps` / `upgrade` |
+
+### Acceptance criteria for a "hardened" slashing mechanism
+
+Before the mechanism should be promoted to mainnet funds, it must pass all of:
+
+1. No configuration can be created that makes default profitable for the
+   earliest winner (M1).
+2. `slash_default` is idempotent per (member, round): two calls behave like
+   one, and the applied percentage equals the governed rate (M2).
+3. Slashing cannot be invoked on a completed vault or on an ineligible member
+   (M6).
+4. Every slash moves value to a well-defined recipient or obligation (M3) and
+   is reflected in reputation (M5).
+5. Members can always retrieve their remaining collateral at completion (M4).
+
 <!-- END -->
