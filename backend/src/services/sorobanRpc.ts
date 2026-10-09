@@ -1,4 +1,12 @@
-import { rpc } from '@stellar/stellar-sdk';
+import {
+  Account,
+  Contract,
+  Keypair,
+  TransactionBuilder,
+  scValToNative,
+  xdr,
+  rpc,
+} from '@stellar/stellar-sdk';
 import { config } from '../config';
 
 export interface RpcContractAddresses {
@@ -66,6 +74,46 @@ export class SorobanRpcClient {
       latestLedger: health.latestLedger,
       oldestLedger: health.oldestLedger,
     };
+  }
+
+  /**
+   * Simulates a read-only contract invocation without signing or submitting.
+   *
+   * A throwaway account is used as the transaction source because simulation
+   * does not require a funded or authorised account.
+   */
+  async simulateCall(
+    contractId: string,
+    method: string,
+    args: xdr.ScVal[] = [],
+  ): Promise<rpc.Api.SimulateTransactionResponse> {
+    const contract = new Contract(contractId);
+    const source = new Account(Keypair.random().publicKey(), '0');
+    const tx = new TransactionBuilder(source, {
+      fee: '1000000',
+      networkPassphrase: this.networkPassphrase,
+    })
+      .addOperation(contract.call(method, ...args))
+      .setTimeout(30)
+      .build();
+
+    return this.withTimeout(this.server.simulateTransaction(tx));
+  }
+
+  /**
+   * Simulates a read-only contract call and decodes the return value.
+   */
+  async readContract<T = unknown>(
+    contractId: string,
+    method: string,
+    args: xdr.ScVal[] = [],
+  ): Promise<T> {
+    const simulation = await this.simulateCall(contractId, method, args);
+    const result = (simulation as any).result;
+    if (!result) {
+      throw new Error(`Soroban simulation for '${method}' returned no result`);
+    }
+    return scValToNative(result.retval) as T;
   }
 }
 
