@@ -268,6 +268,52 @@ h1, h2, h3, h4, p { overflow-wrap: anywhere; }
 
 .circle-card .btn { margin-top: var(--space-4); }
 
+.card-title {
+  margin: 0 0 var(--space-3);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-4);
+  font-size: 0.875rem;
+}
+
+.stat { min-width: 0; }
+
+.stat-label { color: var(--color-text-muted); }
+
+.stat-value {
+  font-weight: 600;
+  color: var(--color-text-soft);
+}
+
+.card-section { margin-top: var(--space-4); }
+
+.progress {
+  height: 8px;
+  background-color: var(--color-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
+}
+
+.progress-caption {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin: var(--space-1) 0 0;
+  text-align: right;
+}
+
 .circle-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));

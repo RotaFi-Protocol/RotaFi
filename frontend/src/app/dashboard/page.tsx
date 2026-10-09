@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useWallet } from '@/hooks/useWallet';
 import WalletConnect from '@/components/WalletConnect';
-import { LoadingSpinner, ErrorState, EmptyState } from '@/components/States';
-import type { MemberInfo, VaultState } from '@/types';
+import PageHeader from '@/components/PageHeader';
+import { LoadingSpinner, EmptyState } from '@/components/States';
+import type { VaultState } from '@/types';
 
 export default function DashboardPage() {
   const { wallet, isLoading: walletLoading, error: walletError, connect, disconnect } = useWallet();
@@ -23,12 +24,13 @@ export default function DashboardPage() {
     members_paid_current_round: 4,
   });
 
+  const paidPct = vault ? Math.round((vault.members_paid_current_round / vault.member_count) * 100) : 0;
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Dashboard</h1>
+      <PageHeader title="Dashboard">
         <WalletConnect wallet={wallet} isLoading={walletLoading} error={walletError} onConnect={connect} onDisconnect={disconnect} />
-      </div>
+      </PageHeader>
 
       {!wallet.connected && !walletLoading && (
         <EmptyState
@@ -47,34 +49,22 @@ export default function DashboardPage() {
             />
           )}
           {!loading && vault && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={cardStyle}>
-                <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem' }}>
-                  Circle #{vault.config.circle_id}
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.875rem' }}>
-                  <Stat label="Status" value={vault.state} />
-                  <Stat label="Round" value={`${vault.current_round} / ${vault.config.total_rounds}`} />
-                  <Stat label="Members Paid" value={`${vault.members_paid_current_round} / ${vault.member_count}`} />
-                  <Stat label="Contribution" value={`${(parseInt(vault.config.contribution_per_member) / 1e7).toFixed(2)} USDC`} />
-                  <Stat label="Collateral" value={`${(parseInt(vault.config.min_collateral) / 1e7).toFixed(2)} USDC`} />
-                  <Stat label="Member Cap" value={String(vault.config.member_cap)} />
-                </div>
+            <div className="card">
+              <h3 className="card-title">Circle #{vault.config.circle_id}</h3>
+              <div className="stat-grid">
+                <Stat label="Status" value={vault.state} />
+                <Stat label="Round" value={`${vault.current_round} / ${vault.config.total_rounds}`} />
+                <Stat label="Members Paid" value={`${vault.members_paid_current_round} / ${vault.member_count}`} />
+                <Stat label="Contribution" value={`${(parseInt(vault.config.contribution_per_member) / 1e7).toFixed(2)} USDC`} />
+                <Stat label="Collateral" value={`${(parseInt(vault.config.min_collateral) / 1e7).toFixed(2)} USDC`} />
+                <Stat label="Member Cap" value={String(vault.config.member_cap)} />
+              </div>
 
-                <div style={{ marginTop: '1rem' }}>
-                  <div style={{ height: '8px', backgroundColor: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${(vault.members_paid_current_round / vault.member_count) * 100}%`,
-                      backgroundColor: '#7C3AED',
-                      borderRadius: '4px',
-                      transition: 'width 0.3s',
-                    }} />
-                  </div>
-                  <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0.25rem 0 0 0', textAlign: 'right' }}>
-                    {Math.round((vault.members_paid_current_round / vault.member_count) * 100)}% paid
-                  </p>
+              <div className="card-section">
+                <div className="progress">
+                  <div className="progress-bar" style={{ width: `${paidPct}%` }} />
                 </div>
+                <p className="progress-caption">{paidPct}% paid</p>
               </div>
             </div>
           )}
@@ -86,17 +76,10 @@ export default function DashboardPage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <span style={{ color: '#6B7280' }}>{label}</span>
+    <div className="stat">
+      <span className="stat-label">{label}</span>
       <br />
-      <span style={{ fontWeight: 600, color: '#374151' }}>{value}</span>
+      <span className="stat-value">{value}</span>
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  border: '1px solid #E5E7EB',
-  borderRadius: '0.5rem',
-  padding: '1.5rem',
-  backgroundColor: 'white',
-};
