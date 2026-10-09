@@ -35,4 +35,9 @@ soroban contract deploy \
   --wasm contract/target/wasm32v1-none/release/bid_engine.wasm \
   --source rotafi-deployer \
   --network testnet
+
+soroban contract deploy \
+  --wasm contract/target/wasm32v1-none/release/protocol_config.wasm \
+  --source rotafi-deployer \
+  --network testnet
 ```
