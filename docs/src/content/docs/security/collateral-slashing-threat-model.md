@@ -324,4 +324,88 @@ members the circle has flagged. The presence of slashing as a *verified*
 behaviour does not by itself establish that slashing is being applied
 *fairly*; nothing ties callers to a sanctioned monitor set.
 
+## Mitigation strategies
+
+### Already in the design
+
+| # | Mitigation | What it defeats |
+|---|---|---|
+| **M0** | Grace period (`round_length_seconds + grace_period_seconds`) before any slash is possible | Accidental/transient misses; gives late payers a window — but enables G3 |
+| **M0b** | Permissionless `slash_default` means no organizer veto on legitimate default punishment | C2's censorship arm |
+| **M0c** | Lottery: commitments bind reveals, and unrevealed commitments substitute so the pot can never be locked | Round-locking and pot-stalling variants of C3 |
+| **M0d** | Deterministic address-sorted eligibility with ledger entropy in the seed | Caller-selected winners in lottery circles |
+| **M0e** | `ProtocolConfig` hard-caps `slash_bps ≤ MAX_SLASH_BPS` and bounds collateral | One form of an out-of-control slash rate — caveat: the vault never reads it (A2) |
+| **M0f** | `ReputationRegistry` is designed to carry defaults across circles | Repeat-defaulter exclusion — caveat: no write path exists (A6) |
+
+### Needed to close the gaps
+
+These are the mitigations implied by the assumptions above. They are the
+contract changes that would turn assumptions A1–A6, A10 into enforced
+invariants.
+
+**M1 — Borrow/obligation coverage rule (requirement A1).**
+At circle creation (`CircleFactory` or vault `initialize`), reject
+configurations where `min_collateral < (total_rounds − 1) · contribution_per_member`.
+This is the single highest-value control: it restores deterrence for the
+earliest (and most dangerous) winner. A coverage *ratio* (e.g. ≥ 100% of
+remaining obligations) is a strictly safer alternative to the fixed formula.
+
+**M2 — Bound and one-shot the slash (A2, A3, G1, G2).**
+The vault should read `slash_bps` from `ProtocolConfig` and apply
+`min(caller_percent, slash_bps)` — or drop the caller parameter entirely and
+always use the governed rate. It should also store the round in which each
+member was last slashed and reject a second slash in the same round. This
+neutralises G1 and G2 and makes the keeper's 50% constant irrelevant to
+deterrence (M1 does the heavy lifting).
+
+**M3 — Redistribute or book the slashed amount (A4).**
+Rather than an accounting write-off, slashed collateral should either be paid
+to the members who honoured the round (pro-rata) or credited against the
+defaulter's future obligations. This makes enforcement *pay the victims*
+instead of burning value, removes the "nothing is lost because nothing moves"
+gap, and gives honest members an economic interest in monitoring.
+
+**M4 — Exit and completion refunds (A5).**
+Add a `withdraw_collateral`/completion path that returns `collateral_staked`
+once the vault is `Completed`. Without it, collateral is indistinguishable from
+a fee, and honest completion is never rewarded.
+
+**M5 — Wire reputation accounting (A6).**
+`slash_default` should call `ReputationRegistry.record_default(member,
+circle_id, slashed_amount)`. This closes the cross-circle defaulter signal that
+M1's compositional behaviour depends on, and it makes G5 (zero-percent
+pollution) consequential on its own fix (M2 rejects `p = 0`).
+
+**M6 — Enforce eligibility and state in slashing (A10, G4).**
+`slash_default` should assert `vault.state == Active`, the target is
+`is_active`, and — for lottery circles — that the defaulter has not already
+received the pot before the penalty applies. This removes post-completion and
+double-target slashing grief, and aligns slashing with the same eligibility set
+used for payout.
+
+**M7 — Minimal collateral floor from protocol (A2 governance).**
+`CircleFactory.require_valid` should call into `ProtocolConfig.check_collateral`
+so a circle cannot set `min_collateral` outside the multisig-governed envelope
+even if M1's formula is skipped. The reference test values (`c = 1 USDC`,
+`k = 0.5 USDC`) would fail M1, which is the intended signal.
+
+**M8 — Governance independence and limits on `slash_bps` (C4).**
+Keep `MAX_SLASH_BPS` a hard constant, add a **rate-of-change limit** per
+governance action, and require a time delay between voting and effect on any
+`upgrade`. This bounds the blast radius of a captured multisig rather than
+preventing it (no on-chain scheme prevents owner collusion).
+
+### Strategic principles
+
+1. **Perimeter, not per-call.** The strongest mitigations act at circle
+   creation (M1, M7) and vault configuration (M2, M3, M6), not by trusting
+   individual `slash_default` callers.
+2. **Make monitoring a payoff, not a charity.** M3 converts the keeper and
+   membership into stakeholders who gain when they detect and report defaults.
+   Permissionless enforcement (M0b) is only safe once slashing state is
+   protected (M2) so callers cannot weaponise it.
+3. **Deterrence before punishment.** A slash that is proportionate but
+   predictable (M1) deters better than a slash that is unlimited but easily
+   evaded (current state).
+
 <!-- END -->
