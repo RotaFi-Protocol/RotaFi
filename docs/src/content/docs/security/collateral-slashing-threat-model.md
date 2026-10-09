@@ -270,4 +270,58 @@ the members who have *not* yet paid during a grace window and target slashes
 (or payment-flooding of the RPC) at exactly that cohort, maximising the chance
 of hitting the final round before genuine payment lands.
 
+## Collusion scenarios
+
+Collusion is coordination that defeats a mechanism that is individually
+incentive-compatible for each party in isolation. ROSCAs are vulnerable because
+a coalition can internalise the "one member defaults" design assumption.
+
+### C1. Winner-then-default (adverse selection capture)
+
+Members with a high default likelihood self-select into circles, collude to
+ensure a controlled address wins an early round, then default together on all
+remaining obligations. With `k < (T − r)·c` this is profitable *by
+construction* (see Economic incentives). The honest members have already paid
+`N·c` into a pot that walked away, and their only recourse is a bond that covers
+it only if A1 holds. This is the dominant threat to the mechanism.
+
+### C2. Organizer-fronts-defaulters
+
+The organizer creates a circle with `N − 1` controlled members. The coalition
+fills every slot, the organizer-selected address wins early, and the coalition
+defaults. The organizer sets `min_collateral` near the protocol floor and a
+long round length to maximise the window. No single member's behaviour is
+suspicious to the vault — everything is a valid call — so the attack is
+undetectable on-chain. Because slashed funds are not redistributed (A4), the
+organizer's `slash_bps` choice only controls *how much is burned off their own
+controlled addresses*, not their profit, which is the pot they captured.
+
+### C3. Lottery steering by commitment collusion
+
+In lottery circles, the draw seed mixes the members' secrets with ledger data.
+A coalition of `N − 1` eligible members can collect `N − 1` reveals and know the
+full address-sorted ordering. They cannot freely steer the seed, because the
+remaining member's secret is bound to their pre-reveal commitment — but they
+can still apply pressure: mass-withhold reveals to stall the draw, then default
+collectively after their member wins, collapsing the contribution pool. The
+reveal fallback (commitments stand in for withheld reveals) keeps the pot
+payable but does not punish the colluding defaults.
+
+### C4. Multisig / governance capture
+
+`ProtocolConfig` lets the owner majority set `slash_bps` (up to `MAX_SLASH_BPS`),
+collateral bounds, fee, and — critically — `upgrade` the WASM. A captured
+`k`-of-`n` majority can raise `slash_bps` to 100%, hollow out collateral bounds,
+or replace the vault code outright. This is a classic trusted-governance
+boundary, not a slashing-specific bug, but it is the *most powerful* corruption
+path and should be scoped out of any threat model claiming trustlessness.
+
+### C5. Enforcement-theatre (false keepers)
+
+Because `slash_default` is permissionless, a coalition can run aggressive
+"monitors" that slash for the attack's own gaming purposes (G-patterns) on
+members the circle has flagged. The presence of slashing as a *verified*
+behaviour does not by itself establish that slashing is being applied
+*fairly*; nothing ties callers to a sanctioned monitor set.
+
 <!-- END -->
