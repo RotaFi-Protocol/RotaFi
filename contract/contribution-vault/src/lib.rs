@@ -4,6 +4,8 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, symbol_short, token, Address, Env, Map, Symbol,
 };
 
+pub mod randomness;
+
 const VAULT: Symbol = symbol_short!("vault");
 const MEMBERS: Symbol = symbol_short!("members");
 const ROUND_PAYMENTS: Symbol = symbol_short!("rd_pay");
