@@ -48,6 +48,10 @@ export class ContractCallError extends Error {
   }
 }
 
+export type ContractResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: ContractCallError };
+
 export class SorobanRpcClient {
   readonly rpcUrl: string;
   readonly networkPassphrase: string;
@@ -150,6 +154,26 @@ export class SorobanRpcClient {
       );
     }
     return scValToNative(result.retval) as T;
+  }
+
+  /**
+   * Like {@link readContract} but captures host/RPC failures instead of
+   * throwing, so callers can handle e.g. an uninitialised contract.
+   */
+  async tryReadContract<T = unknown>(
+    contractId: string,
+    method: string,
+    args: xdr.ScVal[] = [],
+  ): Promise<ContractResult<T>> {
+    try {
+      const value = await this.readContract<T>(contractId, method, args);
+      return { ok: true, value };
+    } catch (error) {
+      if (error instanceof ContractCallError) {
+        return { ok: false, error };
+      }
+      throw error;
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 import { nativeToScVal } from '@stellar/stellar-sdk';
-import { createSorobanClient, SorobanRpcClient } from './sorobanRpc';
+import { ContractResult, createSorobanClient, SorobanRpcClient } from './sorobanRpc';
 
 export interface CircleConfig {
   contribution_amount: string;
@@ -74,6 +74,68 @@ export function parseCircle(raw: unknown): Circle | null {
   };
 }
 
+export type VaultState = 'Setup' | 'Active' | 'Paused' | 'Completed';
+
+const VAULT_STATES: VaultState[] = ['Setup', 'Active', 'Paused', 'Completed'];
+
+export interface VaultConfig {
+  circle_id: number;
+  token_address: string;
+  contribution_per_member: string;
+  member_cap: number;
+  total_rounds: number;
+  min_collateral: string;
+  round_length_seconds: string;
+  grace_period_seconds: string;
+}
+
+export interface Vault {
+  config: VaultConfig;
+  current_round: number;
+  state: VaultState;
+  member_count: number;
+  members_paid_current_round: number;
+  round_start_time: string;
+}
+
+function normalizeVaultState(raw: unknown): VaultState {
+  if (typeof raw === 'number' || typeof raw === 'bigint') {
+    return VAULT_STATES[Number(raw)] ?? 'Setup';
+  }
+  if (typeof raw === 'string') {
+    const index = VAULT_STATES.indexOf(raw as VaultState);
+    if (index >= 0) return raw as VaultState;
+  }
+  if (raw && typeof raw === 'object') {
+    const tagged = raw as { tag?: string };
+    if (typeof tagged.tag === 'string') return normalizeVaultState(tagged.tag);
+  }
+  return 'Setup';
+}
+
+export function parseVault(raw: unknown): Vault {
+  const vault = raw as Record<string, any>;
+  const config = (vault.config ?? {}) as Record<string, any>;
+
+  return {
+    config: {
+      circle_id: toNumber(config.circle_id),
+      token_address: String(config.token_address),
+      contribution_per_member: toBigIntString(config.contribution_per_member),
+      member_cap: toNumber(config.member_cap),
+      total_rounds: toNumber(config.total_rounds),
+      min_collateral: toBigIntString(config.min_collateral),
+      round_length_seconds: toBigIntString(config.round_length_seconds),
+      grace_period_seconds: toBigIntString(config.grace_period_seconds),
+    },
+    current_round: toNumber(vault.current_round),
+    state: normalizeVaultState(vault.state),
+    member_count: toNumber(vault.member_count),
+    members_paid_current_round: toNumber(vault.members_paid_current_round),
+    round_start_time: toBigIntString(vault.round_start_time),
+  };
+}
+
 export class ChainReader {
   constructor(private readonly client: SorobanRpcClient) {}
 
@@ -98,6 +160,28 @@ export class ChainReader {
       'circle_count',
     );
     return toNumber(raw);
+  }
+
+  /** Reads the deployed Contribution Vault state via `get_vault`. */
+  async getVaultState(): Promise<Vault> {
+    const raw = await this.client.readContract(
+      this.client.contracts.contributionVault,
+      'get_vault',
+    );
+    return parseVault(raw);
+  }
+
+  /**
+   * Reads the vault, capturing the host trap raised when the deployed vault
+   * has not been initialised yet instead of throwing.
+   */
+  async tryGetVaultState(): Promise<ContractResult<Vault>> {
+    const result = await this.client.tryReadContract(
+      this.client.contracts.contributionVault,
+      'get_vault',
+    );
+    if (!result.ok) return result;
+    return { ok: true, value: parseVault(result.value) };
   }
 }
 
