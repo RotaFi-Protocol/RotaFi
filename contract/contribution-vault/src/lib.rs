@@ -1,10 +1,15 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, token, Address, Env, Map, Symbol,
+    contract, contractimpl, contracttype, symbol_short, token, Address, BytesN, Env, Map, Symbol,
+    Vec,
 };
 
 pub mod randomness;
+
+use randomness::{
+    sorted_addresses, LotteryPhase, RoundRandomness, COMMITMENTS, RANDOMNESS, REVEAL_WINDOW_SECONDS,
+};
 
 const VAULT: Symbol = symbol_short!("vault");
 const MEMBERS: Symbol = symbol_short!("members");
@@ -214,6 +219,67 @@ impl ContributionVault {
         );
     }
 
+    /// Commits a member's sealed secret for the current round's lottery draw.
+    ///
+    /// The commitment must be `sha256(contract || member || round || secret)`.
+    /// Commitments are binding: the secret cannot be changed once the reveal
+    /// phase opens, which is what makes the eventual draw unbiasable.
+    ///
+    /// # Panics
+    /// Panics if the vault is not active, the member is ineligible, the commit
+    /// phase has closed, or the member has already committed.
+    pub fn commit_randomness(env: Env, member: Address, commitment: BytesN<32>) {
+        member.require_auth();
+        let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        assert!(vault.state == VaultState::Active, "Vault is not active");
+
+        let members: Map<Address, MemberInfo> = env
+            .storage()
+            .persistent()
+            .get(&MEMBERS)
+            .unwrap_or(Map::new(&env));
+
+        let info = members.get(member.clone()).unwrap_or_else(|| {
+            panic!("Not a member of this vault");
+        });
+        assert!(info.is_active, "Member is not active");
+        assert!(!info.has_received_pot, "Member already received pot");
+
+        let eligible = eligible_members(&env, &members);
+        let mut rnd = load_round_randomness(&env, vault.current_round, eligible.len());
+        assert!(
+            rnd.phase == LotteryPhase::Committing,
+            "Commit phase is closed"
+        );
+
+        let mut commitments: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&COMMITMENTS)
+            .unwrap_or(Map::new(&env));
+        let key = (vault.current_round, member.clone());
+        assert!(
+            !commitments.contains_key(key.clone()),
+            "Member already committed"
+        );
+
+        commitments.set(key, commitment.clone());
+        rnd.commit_count += 1;
+
+        if rnd.commit_count >= rnd.eligible_count {
+            rnd.phase = LotteryPhase::Revealing;
+            rnd.reveal_deadline = env.ledger().timestamp() + REVEAL_WINDOW_SECONDS;
+        }
+
+        env.storage().persistent().set(&COMMITMENTS, &commitments);
+        env.storage().persistent().set(&RANDOMNESS, &rnd);
+
+        env.events().publish(
+            (symbol_short!("lot_cmt"),),
+            (vault.current_round, member, commitment),
+        );
+    }
+
     /// Returns whether all active members have paid for the current round.
     pub fn all_paid(env: Env) -> bool {
         let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
@@ -393,6 +459,28 @@ fn self_active_member_count(env: &Env) -> u32 {
         }
     }
     count
+}
+
+/// Collects the members eligible to receive the current round's pot
+/// (active and not yet paid out), sorted deterministically by address.
+fn eligible_members(env: &Env, members: &Map<Address, MemberInfo>) -> Vec<Address> {
+    let mut addrs: Vec<Address> = Vec::new(env);
+    for (addr, info) in members.iter() {
+        if info.is_active && !info.has_received_pot {
+            addrs.push_back(addr);
+        }
+    }
+    sorted_addresses(env, &addrs)
+}
+
+/// Loads the commit-reveal state for `round`, resetting it when the round has
+/// advanced since it was last written.
+fn load_round_randomness(env: &Env, round: u32, eligible_count: u32) -> RoundRandomness {
+    let existing: Option<RoundRandomness> = env.storage().persistent().get(&RANDOMNESS);
+    match existing {
+        Some(rnd) if rnd.round == round => rnd,
+        _ => RoundRandomness::new(round, eligible_count),
+    }
 }
 
 #[cfg(test)]

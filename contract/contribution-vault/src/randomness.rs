@@ -23,9 +23,9 @@ use soroban_sdk::{contracttype, symbol_short, Address, Bytes, BytesN, Env, Symbo
 
 /// Storage key for the current round's [`RoundRandomness`].
 pub const RANDOMNESS: Symbol = symbol_short!("rnd");
-/// Storage key for the map of per-member commitments: `Map<Address, BytesN<32>>`.
+/// Storage key for the map of per-member commitments: `Map<(round, Address), BytesN<32>>`.
 pub const COMMITMENTS: Symbol = symbol_short!("commits");
-/// Storage key for the map of per-member reveals: `Map<Address, BytesN<32>>`.
+/// Storage key for the map of per-member reveals: `Map<(round, Address), BytesN<32>>`.
 pub const REVEALS: Symbol = symbol_short!("reveals");
 /// Storage key for the map of finalised draw seeds: `Map<u32, BytesN<32>>`.
 pub const ROUND_SEEDS: Symbol = symbol_short!("seeds");
