@@ -9,6 +9,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+#### Backend
+- Soroban RPC client (`src/services/sorobanRpc.ts`) with read-only contract simulation, typed `ContractCallError` and health checks
+- `ChainReader` for reading `get_circle`, `circle_count`, `get_vault`, `get_score` and `get_rating` from the deployed testnet contracts
+- Optional live reads from Soroban testnet via `SOROBAN_LIVE_READS=true`
+- Integration test suite (`npm run test:integration`) calling the deployed `get_circle`, `get_vault_state` and `get_reputation_rating` contracts over real testnet RPC
+- `Backend Integration Tests` workflow running the suite on PRs, master pushes, a daily schedule and manual dispatch
+
 #### Local development (Docker Compose)
 - `docker-compose.yml` running the Stellar Quickstart Soroban sandbox, backend, keeper, and frontend together
 - Health checks for every service and source bind mounts for hot reload
