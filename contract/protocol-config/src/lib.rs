@@ -71,6 +71,7 @@ impl ProtocolConfig {
             threshold <= owners.len(),
             "Threshold cannot exceed owner count"
         );
+        params.require_valid();
 
         env.storage().instance().set(&CONFIG, &params);
         env.storage().instance().set(&OWNERS, &owners);
@@ -101,6 +102,63 @@ impl ProtocolConfig {
             .get(&OWNERS)
             .unwrap_or(Vec::new(&env));
         owner_exists(&owners, &who)
+    }
+
+    /// Returns the full protocol parameter set.
+    pub fn get_params(env: Env) -> ProtocolParams {
+        env.storage().instance().get(&CONFIG).unwrap()
+    }
+
+    /// Returns the protocol fee in basis points.
+    pub fn get_fee_bps(env: Env) -> u32 {
+        let params: ProtocolParams = env.storage().instance().get(&CONFIG).unwrap();
+        params.fee_bps
+    }
+
+    /// Returns the default collateral slash in basis points.
+    pub fn get_slash_bps(env: Env) -> u32 {
+        let params: ProtocolParams = env.storage().instance().get(&CONFIG).unwrap();
+        params.slash_bps
+    }
+
+    /// Returns true when `member_cap` falls inside the protocol bounds.
+    pub fn check_member_cap(env: Env, member_cap: u32) -> bool {
+        let params: ProtocolParams = env.storage().instance().get(&CONFIG).unwrap();
+        member_cap >= params.min_member_cap && member_cap <= params.max_member_cap
+    }
+
+    /// Returns true when `collateral` falls inside the protocol bounds.
+    pub fn check_collateral(env: Env, collateral: i128) -> bool {
+        let params: ProtocolParams = env.storage().instance().get(&CONFIG).unwrap();
+        collateral >= params.min_collateral && collateral <= params.max_collateral
+    }
+}
+
+impl ProtocolParams {
+    /// Validates that the parameter set is internally consistent and within
+    /// the protocol's hard-coded safety limits.
+    pub fn require_valid(&self) {
+        assert!(
+            self.min_member_cap >= MIN_MEMBER_CAP_FLOOR,
+            "min_member_cap below floor"
+        );
+        assert!(
+            self.max_member_cap >= self.min_member_cap,
+            "max_member_cap below min_member_cap"
+        );
+        assert!(
+            self.min_collateral >= 0,
+            "min_collateral cannot be negative"
+        );
+        assert!(
+            self.max_collateral >= self.min_collateral,
+            "max_collateral below min_collateral"
+        );
+        assert!(self.fee_bps <= MAX_FEE_BPS, "fee_bps exceeds maximum");
+        assert!(
+            self.slash_bps <= MAX_SLASH_BPS,
+            "slash_bps exceeds maximum"
+        );
     }
 }
 
