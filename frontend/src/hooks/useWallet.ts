@@ -17,6 +17,7 @@ export function useWallet() {
   const connect = useCallback(async (provider: WalletProvider) => {
     if (!provider) return;
     setError(null);
+    setIsLoading(true);
 
     try {
       let publicKey: string | null = null;
@@ -61,6 +62,8 @@ export function useWallet() {
         publicKey: null,
         provider: null,
       });
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -76,11 +79,11 @@ export function useWallet() {
   useEffect(() => {
     const savedProvider = localStorage.getItem(STORAGE_KEY) as WalletProvider;
     if (savedProvider && !wallet.connected) {
-      setIsLoading(false);
+      connect(savedProvider);
     } else {
       setIsLoading(false);
     }
-  }, []);
+  }, [connect, wallet.connected]);
 
   return {
     wallet,
