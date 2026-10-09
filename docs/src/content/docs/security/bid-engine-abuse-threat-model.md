@@ -78,3 +78,42 @@ The mechanism only works if the competition is **fair and private**:
    remain trusted input (see residual risk O1).
 4. **Auction ↔ ledger ordering.** Validators decide transaction order. Commit-
    reveal is specifically designed so that ordering confers no advantage.
+
+## Auction lifecycle
+
+A single auction moves through `Commit → Reveal → Closed`. The phase is not
+stored on every transition; it is **derived** from the number of commitments and
+the ledger clock, so a stalled commit phase can never lock the auction open.
+
+| Step | Function | Effect | Phase after |
+|---|---|---|---|
+| Open | `start_auction(config, members, round)` | Organizer-bound, roster-bound, round-bound auction created; `BIDS`/`COMMITS` cleared | `Commit` |
+| Commit | `commit_bid(member, commitment, round)` | Stores a hiding commitment; increments `commit_count` | `Commit` (or `Reveal` when all committed) |
+| Reveal | `reveal_bid(member, discount_bps, nonce, round)` | Verifies the opening against the commitment; stores a plaintext `Bid` | `Reveal` |
+| Resolve | `resolve_auction()` | Picks the max revealed discount, tie-break by smallest address, clears state, records `LAST_ROUND` | `Closed` |
+
+### The phase state machine
+
+```
+                       all committed            every commit revealed
+    ┌──────────┐   OR commit_deadline passed   ┌──────────┐   OR reveal_deadline passed
+    │  Commit  │ ────────────────────────────► │  Reveal  │ ───────────────────────────► Closed
+    └──────────┘                               └──────────┘
+         ▲                                            │
+         │ start_auction (round > LAST_ROUND)         │ reveal_bid
+         │                                            │ (opening checked against commitment)
+    ┌──────────┐                                      │
+    │  Closed  │ ◄────────────────────────────────────┘  resolve_auction
+    └──────────┘
+```
+
+Two properties fall directly out of this design and drive the rest of the
+analysis:
+
+1. **Bids are hidden until commits close.** During `Commit`, only the digest is
+   stored; `get_all_bids` is empty and `get_bid` returns `None`. The discount is
+   unreadable until the reveal phase opens, which happens only once every member
+   has committed or the commit deadline passes.
+2. **Resolution is time-boxed and permissionless.** Any address may settle the
+   auction, but only after every commit has been revealed or the reveal deadline
+   has passed, so no caller can time the settle to a sniper.
