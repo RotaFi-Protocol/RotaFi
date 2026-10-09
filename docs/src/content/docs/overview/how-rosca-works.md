@@ -31,6 +31,8 @@ RotaFi supports three methods for determining who receives the pot each round:
 ### Lottery
 Random selection among members who haven't yet received the pot, using verifiable on-chain randomness.
 
+Every eligible member commits to a secret, reveals it after all commitments are in, and the pot is drawn from a seed mixing those openings with the ledger state. The result is deterministic and publicly verifiable — no member or operator can bias or predict it. See the [Contribution Vault](/contracts/contribution-vault/#lottery-randomness) reference for the full scheme.
+
 ### Sealed-Bid Auction
 Members bid a discount they're willing to accept. The highest discount wins — they get the pot minus the discount, and the discount is redistributed pro-rata to other members as bonus interest.
 
