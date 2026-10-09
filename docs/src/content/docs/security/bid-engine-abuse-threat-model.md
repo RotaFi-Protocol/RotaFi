@@ -156,3 +156,36 @@ fixed.
 
 **Test.** `test_sealed_bids_are_hidden_until_reveal` asserts `get_all_bids()` is
 empty and `get_bid` is `None` while commitments exist.
+
+### F2. Bid sniping at round boundaries
+
+**Naive behaviour.** `start_auction(config, round)` ignored its `round` argument
+(beyond an event), stored no auction-level round, and set no deadline.
+`submit_bid` took the round from the caller and stored it per-bid. As a result:
+
+- a bid could be accepted at *any* time — there was no commit deadline and no
+  bid deadline, so the "auction" could be sniped in the same ledger that the
+  keeper tried to settle;
+- a bid submitted for round `N` while a round `N+1` auction was already open
+  could be carried across round boundaries, and an already-resolved round could
+  be bid into again.
+
+**Consequence.** Round transitions are exactly when a ROSCA pot moves to its new
+owner, so a sniper who fires into the boundary ledger can capture the pot with
+zero price discovery. Stale or mis-labelled bids add confusion and enable replay
+of a previously observed winning strategy.
+
+**Mitigation.** The auction is now bound to a single `round`:
+
+- `start_auction` rejects any round not strictly greater than `LAST_ROUND` (the
+  last resolved round), so a past auction can never be replayed or re-opened.
+- `commit_bid`/`reveal_bid` reject a `round` argument that does not match the
+  open auction.
+- `commit_deadline` closes the commit phase and `reveal_deadline` closes the
+  reveal phase; after the reveal deadline, `resolve_auction` succeeds even with
+  a partial reveal set, so there is no window in which a late bid can still
+  win.
+
+**Tests.** `test_stale_round_rejected`, `test_next_round_accepted`,
+`test_commit_wrong_round_rejected`, `test_resolve_before_deadline_with_partial_reveals_rejected`
+and `test_resolve_after_deadline_with_partial_reveals_succeeds`.
