@@ -1,10 +1,23 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'RotaFi — Trustless ROSCA on Stellar',
   description: 'Trustless rotating savings and credit associations on Stellar Soroban',
   icons: { icon: '/favicon.svg' },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'RotaFi',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+  themeColor: '#7C3AED',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
