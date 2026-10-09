@@ -98,6 +98,9 @@ cd backend && npm install && npm run dev
 # Frontend
 cd frontend && npm install && npm run dev
 
+# Frontend E2E (Playwright, against Stellar testnet config)
+cd frontend && npx playwright install chromium && npm run test:e2e
+
 # Docs
 cd docs && npm install && npm run dev
 ```

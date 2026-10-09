@@ -31,6 +31,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Integration test suite (`npm run test:integration`) calling the deployed `get_circle`, `get_vault_state` and `get_reputation_rating` contracts over real testnet RPC
 - `Backend Integration Tests` workflow running the suite on PRs, master pushes, a daily schedule and manual dispatch
 
+#### Frontend
+- **Circle lifecycle UI** — joined circles expose per-round contribute actions, payout release with a recorded payout history, a completion state after the final round, and dashboard progress on the circle detail and dashboard pages
+- Testnet contract configuration module (`lib/contracts.ts`) defaulting to the canonical Stellar testnet deployment, plus an opt-in live on-chain vault reader (`lib/soroban.ts`, gated on `NEXT_PUBLIC_USE_LIVE_CONTRACTS=true`)
+- Persistent circle lifecycle store (`lib/lifecycle.ts`) with a deterministic per-round winner rotation and localStorage persistence
+
+#### Testing (Frontend E2E)
+- **Playwright E2E suite** covering wallet connect → browse circles → join circle → contribute each round → payout → circle completion, running against the testnet contract configuration (mock Freighter wallet fixture and a deterministic lifecycle simulation by default; live testnet reads opt-in via `E2E_LIVE_TESTNET=1`)
+- `Test Frontend E2E` GitHub Actions workflow installing Chromium and reporting Playwright results on PRs and master
+- Shared wallet/testnet fixtures, lifecycle helpers, and an `e2e/README.md` reference for the testnet defaults
+
 #### Local development (Docker Compose)
 - `docker-compose.yml` running the Stellar Quickstart Soroban sandbox, backend, keeper, and frontend together
 - Health checks for every service and source bind mounts for hot reload
@@ -51,6 +61,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Centralised responsive design tokens, reusable button/card/state primitives and `44px` minimum touch targets in `globals.css`
 - Safe-area (`viewport-fit=cover`) insets, dvh sizing, reduced-motion support and explicit `iOS Safari`/`Chrome Android` browser targets
 - Page headers, grids and long on-chain identifiers now reflow without horizontal overflow on small screens
+- Wallet connection is restored from the saved provider on remount, so the connected state survives client-side page navigation
 
 ---
 
