@@ -24,6 +24,11 @@ pub struct CircleConfig {
     pub payout_method: PayoutMethod,
     pub min_collateral: i128,
     pub grace_period_seconds: u64,
+    /// The Stellar asset contract (token) the circle is denominated in.
+    ///
+    /// Circles are no longer limited to USDC: any supported asset — XLM,
+    /// EURC, or a custom Stellar token — can be selected by the organizer.
+    pub token_address: Address,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
