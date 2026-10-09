@@ -8,6 +8,7 @@ export interface CircleConfig {
   payout_method: number;
   min_collateral: string;
   grace_period_seconds: string;
+  token_address: string;
 }
 
 export interface Circle {
@@ -68,6 +69,7 @@ export function parseCircle(raw: unknown): Circle | null {
       payout_method: normalizePayoutMethod(config.payout_method),
       min_collateral: toBigIntString(config.min_collateral),
       grace_period_seconds: toBigIntString(config.grace_period_seconds),
+      token_address: String(config.token_address),
     },
     created_at: toBigIntString(circle.created_at),
     active: Boolean(circle.active),

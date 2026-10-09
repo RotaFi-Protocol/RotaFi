@@ -7,6 +7,13 @@ export const createCircleSchema = z.object({
   payout_method: z.number().int().min(0).max(2, 'Must be 0 (Lottery), 1 (Auction), or 2 (Priority)'),
   min_collateral: z.string().regex(/^\d+$/, 'Must be a positive integer string'),
   grace_period_seconds: z.string().regex(/^\d+$/, 'Must be a positive integer string'),
+  // Token the circle is denominated in. Defaults to USDC when omitted.
+  token_symbol: z
+    .string()
+    .min(1, 'Token symbol is required')
+    .max(12, 'Token symbol is too long')
+    .optional(),
+  token_address: z.string().min(1, 'Token address is required').optional(),
 });
 
 export const joinCircleSchema = z.object({
