@@ -292,3 +292,70 @@ fn test_initialize_with_zero_contribution() {
     env.mock_all_auths();
     ContributionVaultClient::new(&env, &contract_id).initialize(&config);
 }
+
+#[test]
+fn test_get_token_address_returns_configured_asset() {
+    let env = Env::default();
+    let (contract_id, config, _token_addr) = deploy_and_init(&env);
+
+    let returned = ContributionVaultClient::new(&env, &contract_id).get_token_address();
+    assert_eq!(returned, config.token_address);
+}
+
+#[test]
+#[should_panic(expected = "Token does not match vault configuration")]
+fn test_join_vault_with_wrong_token_rejected() {
+    let env = Env::default();
+    let (contract_id, config, token_addr) = deploy_and_init(&env);
+
+    // Create a completely different Stellar asset contract.
+    let other_admin = Address::generate(&env);
+    let other_token = env.register_stellar_asset_contract_v2(other_admin).address();
+    assert_ne!(other_token, token_addr);
+
+    let member = setup_member(&env, &other_token, config.min_collateral, config.contribution_per_member);
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &contract_id).join_vault(&member, &other_token);
+}
+
+#[test]
+fn test_custom_asset_full_lifecycle() {
+    let env = Env::default();
+    let contract_id = deploy_vault(&env);
+
+    // EURC-like custom token registered as the vault's configured asset.
+    let admin = Address::generate(&env);
+    let custom_token = env.register_stellar_asset_contract_v2(admin).address();
+    let mut config = create_vault_config(&env);
+    config.token_address = custom_token.clone();
+
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &contract_id).initialize(&config);
+    assert_eq!(
+        ContributionVaultClient::new(&env, &contract_id).get_token_address(),
+        custom_token
+    );
+
+    let (m1, m2, m3) = fill_vault(&env, &contract_id, &config, &custom_token);
+    contribute_as_member(&env, &contract_id, &custom_token, &m1);
+    contribute_as_member(&env, &contract_id, &custom_token, &m2);
+    contribute_as_member(&env, &contract_id, &custom_token, &m3);
+    assert!(all_paid(&env, &contract_id));
+    release_payout(&env, &contract_id, &custom_token, &m1);
+
+    let info = get_member_info(&env, &contract_id, &m1).unwrap();
+    assert!(info.has_received_pot);
+}
+
+#[test]
+#[should_panic(expected = "Token does not match vault configuration")]
+fn test_contribute_with_wrong_token_rejected() {
+    let env = Env::default();
+    let (contract_id, config, token_addr) = deploy_and_init(&env);
+    let (m1, _m2, _m3) = fill_vault(&env, &contract_id, &config, &token_addr);
+
+    let other_admin = Address::generate(&env);
+    let other_token = env.register_stellar_asset_contract_v2(other_admin).address();
+    env.mock_all_auths();
+    ContributionVaultClient::new(&env, &contract_id).contribute(&m1, &other_token);
+}
