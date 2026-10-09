@@ -404,3 +404,32 @@ Decisions that need a governance call before these are closed: whether the max
 discount should become a per-circle governed control (O5), whether
 permissionless auction start should replace organizer-only start (O4), and
 whether auction-misbehaviour metrics should feed `ReputationRegistry` (O6).
+
+## Hardening backlog
+
+The mitigations in this model are already shipped, so the backlog covers only
+the residual risks above and the cross-system wiring that makes the auction
+trusted end-to-end.
+
+| Priority | Work item | Risk closed | Touches |
+|---|---|---|---|
+| P0 | Keep commit-reveal, deadlines, roster gating and deterministic resolution as the enforced baseline; regression-test F1–F8 on every change | F1–F8 | `bid-engine` tests |
+| P1 | Wire auction outcomes into `ReputationRegistry` so bad-bidder patterns score like defaults | O6 | `resolve_auction` cross-contract call |
+| P1 | Governance-bounded `max_discount_bps` per circle via `ProtocolConfig` | O5 | `ProtocolConfig` + keeper |
+| P2 | Permissionless auction start fallback if the organizer is unresponsive | O4 | `start_auction` |
+| P2 | Member-facing nonce handling guidance and off-chain re-verification tooling | O2 | docs + keeper |
+
+### Acceptance criteria for a "hardened" auction
+
+Before the sealed auction should be promoted to mainnet funds, it must pass all
+of:
+
+1. No bid is readable before the commit phase closes (M1) — a state-graph
+   consumer cannot reconstruct any discount from `COMMITS`.
+2. A bid cannot be submitted outside `[min_discount_bps, max_discount_bps]` or
+   after its phase deadline (M4, M8).
+3. No address outside the stored roster can bid (M5).
+4. Round replay is impossible: `round` must advance past `LAST_ROUND` (M3).
+5. The winner of any reveal set is independent of transaction ordering and
+   storage iteration (M7), and resolvable in bounded ledger time even if some
+   members withhold (M9).
