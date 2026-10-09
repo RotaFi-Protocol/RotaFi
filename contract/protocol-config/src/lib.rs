@@ -394,8 +394,6 @@ fn require_multisig(env: &Env, approvers: &Vec<Address>) {
     let mut i = 0u32;
     while i < approvers.len() {
         let approver = approvers.get(i).unwrap();
-        assert!(owner_exists(&owners, &approver), "Approver is not an owner");
-        approver.require_auth();
 
         let mut duplicate = false;
         let mut j = 0u32;
@@ -406,7 +404,10 @@ fn require_multisig(env: &Env, approvers: &Vec<Address>) {
             }
             j += 1;
         }
+
         if !duplicate {
+            assert!(owner_exists(&owners, &approver), "Approver is not an owner");
+            approver.require_auth();
             approvals += 1;
         }
         i += 1;
