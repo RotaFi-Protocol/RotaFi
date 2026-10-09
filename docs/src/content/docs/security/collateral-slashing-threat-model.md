@@ -428,4 +428,49 @@ No currently-shipped mitigation closes G1/G2; they are closed only by the
 recommended M2. C4 is out of scope for the slashing mechanism per se but
 documented because it is the highest-impact corruption path.
 
+## Worked numeric example
+
+Reference configuration (as in the vault tests): `c = 1.00 USDC`, `N = T = 3`,
+`k = 0.50 USDC`, keeper `slash_percent = 50`.
+
+### Example 1 — why a 3-member circle at these parameters is unsafe
+
+A member wins round 1 and receives `3.00 USDC`. They owe rounds 2 and 3.
+
+```
+remaining obligation = (T − r)·c = (3 − 1)·1.00 = 2.00 USDC
+bond at risk          = k = 0.50 USDC
+default_gain          = 2.00 − 0.50 = +1.50 USDC   (rational to defect)
+```
+
+A single keeper slash forfeits `0.50 · 0.5 = 0.25 USDC`; even an immediate
+100% slash leaves `+1.50 USDC` on the table. The honest members paid `1.00 USDC`
+each into a pot they will not see reimbursed.
+
+### Example 2 — repeat-slash drain in one round
+
+Same circle. After grace expires, an attacker calls `slash_default(bob, 50)`
+repeatedly before the round advances:
+
+```
+start      bond = 0.50
+1st call   bond = 0.25
+2nd call   bond = 0.125
+3rd call   bond = 0.0625
+4th call   0.03125  ... asymptotic to 0
+```
+
+With `slash_percent = 100` the first call already wipes the bond — one
+transaction destroys the full performance guarantee.
+
+### Example 3 — what M1 would require for a 3-member circle
+
+```
+coverage rule:  min_collateral ≥ (T − 1)·c = 2.00 USDC
+```
+
+So the same circle becomes sound only at `k ≥ 2.00 USDC`. Alternatively, with
+`k = 0.50` fixed, the circle must be capped at `T ≤ 1 + k/c = 1.5` rounds, which
+is impossible here — the correct response is to reject the configuration.
+
 <!-- END -->
