@@ -1,7 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec,
+    contract, contractimpl, contracttype, symbol_short, Address, BytesN, Env, Symbol, Vec,
 };
 
 const CONFIG: Symbol = symbol_short!("config");
@@ -294,6 +294,22 @@ impl ProtocolConfig {
             owners: load_owners(&env),
             threshold: env.storage().instance().get(&THRESHOLD).unwrap_or(0),
         }
+    }
+
+    /// Upgrades the contract to a new WASM implementation. Requires multisig
+    /// approval.
+    ///
+    /// # Panics
+    /// Panics if approvals are insufficient.
+    #[allow(deprecated)]
+    pub fn upgrade(env: Env, approvers: Vec<Address>, new_wasm_hash: BytesN<32>) {
+        require_multisig(&env, &approvers);
+
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
+
+        env.events()
+            .publish((symbol_short!("upgrade"),), (approvers, new_wasm_hash));
     }
 }
 
