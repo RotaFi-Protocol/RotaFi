@@ -1,7 +1,15 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, token, Address, Env, Map, Symbol,
+    contract, contractimpl, contracttype, symbol_short, token, Address, BytesN, Env, Map, Symbol,
+    Vec,
+};
+
+pub mod randomness;
+
+use randomness::{
+    commitment_digest, derive_seed, seed_to_index, sorted_addresses, LotteryPhase, RoundRandomness,
+    COMMITMENTS, RANDOMNESS, REVEALS, REVEAL_WINDOW_SECONDS, ROUND_SEEDS,
 };
 
 const VAULT: Symbol = symbol_short!("vault");
@@ -212,6 +220,123 @@ impl ContributionVault {
         );
     }
 
+    /// Commits a member's sealed secret for the current round's lottery draw.
+    ///
+    /// The commitment must be `sha256(contract || member || round || secret)`.
+    /// Commitments are binding: the secret cannot be changed once the reveal
+    /// phase opens, which is what makes the eventual draw unbiasable.
+    ///
+    /// # Panics
+    /// Panics if the vault is not active, the member is ineligible, the commit
+    /// phase has closed, or the member has already committed.
+    pub fn commit_randomness(env: Env, member: Address, commitment: BytesN<32>) {
+        member.require_auth();
+        let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        assert!(vault.state == VaultState::Active, "Vault is not active");
+
+        let members: Map<Address, MemberInfo> = env
+            .storage()
+            .persistent()
+            .get(&MEMBERS)
+            .unwrap_or(Map::new(&env));
+
+        let info = members.get(member.clone()).unwrap_or_else(|| {
+            panic!("Not a member of this vault");
+        });
+        assert!(info.is_active, "Member is not active");
+        assert!(!info.has_received_pot, "Member already received pot");
+
+        let eligible = eligible_members(&env, &members);
+        let mut rnd = load_round_randomness(&env, vault.current_round, eligible.len());
+        assert!(
+            rnd.phase == LotteryPhase::Committing,
+            "Commit phase is closed"
+        );
+
+        let mut commitments: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&COMMITMENTS)
+            .unwrap_or(Map::new(&env));
+        let key = (vault.current_round, member.clone());
+        assert!(
+            !commitments.contains_key(key.clone()),
+            "Member already committed"
+        );
+
+        commitments.set(key, commitment.clone());
+        rnd.commit_count += 1;
+
+        if rnd.commit_count >= rnd.eligible_count {
+            rnd.phase = LotteryPhase::Revealing;
+            rnd.reveal_deadline = env.ledger().timestamp() + REVEAL_WINDOW_SECONDS;
+        }
+
+        env.storage().persistent().set(&COMMITMENTS, &commitments);
+        env.storage().persistent().set(&RANDOMNESS, &rnd);
+
+        env.events().publish(
+            (symbol_short!("lot_cmt"),),
+            (vault.current_round, member, commitment),
+        );
+    }
+
+    /// Reveals a member's previously committed secret for the current round.
+    ///
+    /// The contract recomputes the commitment digest and rejects any secret
+    /// that does not match, so members cannot change their contribution after
+    /// seeing anybody else's opening.
+    ///
+    /// # Panics
+    /// Panics if the reveal phase is not open, the member never committed, the
+    /// secret does not match, or the member already revealed.
+    pub fn reveal_randomness(env: Env, member: Address, secret: BytesN<32>) {
+        member.require_auth();
+        let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        assert!(vault.state == VaultState::Active, "Vault is not active");
+
+        let mut rnd = load_round_randomness(&env, vault.current_round, 0);
+        assert!(
+            rnd.phase == LotteryPhase::Revealing,
+            "Reveal phase is not open"
+        );
+
+        let key = (vault.current_round, member.clone());
+        let commitments: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&COMMITMENTS)
+            .unwrap_or(Map::new(&env));
+        let commitment = commitments
+            .get(key.clone())
+            .unwrap_or_else(|| panic!("Member has not committed"));
+
+        let expected = commitment_digest(&env, &member, vault.current_round, &secret);
+        assert!(expected == commitment, "Reveal does not match commitment");
+
+        let mut reveals: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&REVEALS)
+            .unwrap_or(Map::new(&env));
+        assert!(!reveals.contains_key(key.clone()), "Member already revealed");
+
+        reveals.set(key, secret.clone());
+        rnd.reveal_count += 1;
+
+        if rnd.reveal_count >= rnd.eligible_count {
+            rnd.phase = LotteryPhase::Ready;
+        }
+
+        env.storage().persistent().set(&REVEALS, &reveals);
+        env.storage().persistent().set(&RANDOMNESS, &rnd);
+
+        env.events().publish(
+            (symbol_short!("lot_rev"),),
+            (vault.current_round, member, secret),
+        );
+    }
+
     /// Returns whether all active members have paid for the current round.
     pub fn all_paid(env: Env) -> bool {
         let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
@@ -292,6 +417,104 @@ impl ContributionVault {
         );
     }
 
+    /// Draws the lottery winner for the current round and releases the pot.
+    ///
+    /// Unlike [`Self::release_payout`], the winner is *not* supplied by the
+    /// caller. It is derived from the round's commit-reveal openings mixed with
+    /// ledger data, so the result is publicly verifiable and cannot be chosen
+    /// by the transaction submitter.
+    ///
+    /// If every eligible member revealed, the full secret set is used. If the
+    /// reveal window expired first, non-revealing members contribute their
+    /// still-binding commitment instead, so a member cannot lock the pot by
+    /// withholding a reveal — even if nobody reveals at all.
+    ///
+    /// # Panics
+    /// Panics if the vault is not active, contributions are still outstanding,
+    /// or the draw is not ready.
+    pub fn release_lottery_payout(env: Env, usdc_token: Address) {
+        let mut vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        assert!(vault.state == VaultState::Active, "Vault is not active");
+
+        let now = env.ledger().timestamp();
+        let active_count = self_active_member_count(&env);
+        let all_paid = vault.members_paid_current_round >= active_count;
+        let grace_ended = now
+            >= vault.round_start_time
+                + vault.config.round_length_seconds
+                + vault.config.grace_period_seconds;
+        assert!(
+            all_paid || grace_ended,
+            "Not all members paid and grace period not expired"
+        );
+
+        let rnd = load_round_randomness(&env, vault.current_round, 0);
+        let all_revealed = rnd.phase == LotteryPhase::Ready;
+        let reveal_expired = rnd.phase == LotteryPhase::Revealing
+            && now >= rnd.reveal_deadline;
+        assert!(
+            all_revealed || reveal_expired,
+            "Lottery draw is not ready"
+        );
+
+        let mut members: Map<Address, MemberInfo> = env
+            .storage()
+            .persistent()
+            .get(&MEMBERS)
+            .unwrap();
+        let eligible = eligible_members(&env, &members);
+        assert!(!eligible.is_empty(), "No eligible members for draw");
+
+        let openings = collect_openings(&env, vault.current_round, &eligible);
+        let seed = derive_seed(&env, &openings);
+        let index = seed_to_index(&seed, eligible.len());
+        let winner = eligible.get(index).unwrap();
+
+        let mut winner_info = members.get(winner.clone()).unwrap();
+        assert!(!winner_info.has_received_pot, "Winner already received pot");
+        winner_info.has_received_pot = true;
+        members.set(winner.clone(), winner_info);
+
+        let pot = vault.config.contribution_per_member * (vault.member_count as i128);
+        let token_client = token::Client::new(&env, &usdc_token);
+        token_client.transfer(&env.current_contract_address(), &winner, &pot);
+
+        let mut round_winners: Map<u32, Address> = env
+            .storage()
+            .persistent()
+            .get(&ROUND_WINNER)
+            .unwrap_or(Map::new(&env));
+        round_winners.set(vault.current_round, winner.clone());
+        env.storage()
+            .persistent()
+            .set(&ROUND_WINNER, &round_winners);
+
+        let mut seeds: Map<u32, BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&ROUND_SEEDS)
+            .unwrap_or(Map::new(&env));
+        seeds.set(vault.current_round, seed.clone());
+        env.storage().persistent().set(&ROUND_SEEDS, &seeds);
+
+        // Move to next round.
+        vault.current_round += 1;
+        vault.members_paid_current_round = 0;
+        vault.round_start_time = now;
+
+        if vault.current_round > vault.config.total_rounds {
+            vault.state = VaultState::Completed;
+        }
+
+        env.storage().persistent().set(&MEMBERS, &members);
+        env.storage().instance().set(&VAULT, &vault);
+
+        env.events().publish(
+            (symbol_short!("lot_draw"),),
+            (vault.current_round - 1, winner, pot, seed),
+        );
+    }
+
     /// Slashes a member's collateral for missing a contribution.
     ///
     /// Returns the slashed amount. Can only be called after grace period expires
@@ -367,6 +590,67 @@ impl ContributionVault {
             .unwrap_or(Map::new(&env));
         round_payments.get((round, member)).unwrap_or(false)
     }
+
+    /// Returns the commit-reveal state for the current round, if one exists.
+    pub fn get_round_randomness(env: Env) -> Option<RoundRandomness> {
+        let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        let rnd: Option<RoundRandomness> = env.storage().persistent().get(&RANDOMNESS);
+        match rnd {
+            Some(r) if r.round == vault.current_round => Some(r),
+            _ => None,
+        }
+    }
+
+    /// Returns a member's commitment for a given round.
+    pub fn get_commitment(env: Env, round: u32, member: Address) -> Option<BytesN<32>> {
+        let commitments: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&COMMITMENTS)
+            .unwrap_or(Map::new(&env));
+        commitments.get((round, member))
+    }
+
+    /// Returns a member's revealed secret for a given round.
+    pub fn get_reveal(env: Env, round: u32, member: Address) -> Option<BytesN<32>> {
+        let reveals: Map<(u32, Address), BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&REVEALS)
+            .unwrap_or(Map::new(&env));
+        reveals.get((round, member))
+    }
+
+    /// Returns the finalised draw seed for a completed round.
+    pub fn get_round_seed(env: Env, round: u32) -> Option<BytesN<32>> {
+        let seeds: Map<u32, BytesN<32>> = env
+            .storage()
+            .persistent()
+            .get(&ROUND_SEEDS)
+            .unwrap_or(Map::new(&env));
+        seeds.get(round)
+    }
+
+    /// Computes the winner the current openings would produce, without paying.
+    ///
+    /// Useful for clients and keepers to independently verify a draw before or
+    /// after it is executed on-chain.
+    pub fn preview_lottery_winner(env: Env) -> Option<Address> {
+        let vault: Vault = env.storage().instance().get(&VAULT).unwrap();
+        let members: Map<Address, MemberInfo> = env
+            .storage()
+            .persistent()
+            .get(&MEMBERS)
+            .unwrap_or(Map::new(&env));
+        let eligible = eligible_members(&env, &members);
+        if eligible.is_empty() {
+            return None;
+        }
+        let openings = collect_openings(&env, vault.current_round, &eligible);
+        let seed = derive_seed(&env, &openings);
+        let index = seed_to_index(&seed, eligible.len());
+        eligible.get(index)
+    }
 }
 
 impl VaultConfig {
@@ -393,5 +677,59 @@ fn self_active_member_count(env: &Env) -> u32 {
     count
 }
 
+/// Collects the members eligible to receive the current round's pot
+/// (active and not yet paid out), sorted deterministically by address.
+fn eligible_members(env: &Env, members: &Map<Address, MemberInfo>) -> Vec<Address> {
+    let mut addrs: Vec<Address> = Vec::new(env);
+    for (addr, info) in members.iter() {
+        if info.is_active && !info.has_received_pot {
+            addrs.push_back(addr);
+        }
+    }
+    sorted_addresses(env, &addrs)
+}
+
+/// Loads the commit-reveal state for `round`, resetting it when the round has
+/// advanced since it was last written.
+fn load_round_randomness(env: &Env, round: u32, eligible_count: u32) -> RoundRandomness {
+    let existing: Option<RoundRandomness> = env.storage().persistent().get(&RANDOMNESS);
+    match existing {
+        Some(rnd) if rnd.round == round => rnd,
+        _ => RoundRandomness::new(round, eligible_count),
+    }
+}
+
+/// Builds the ordered list of draw openings for `eligible` members.
+///
+/// A member's revealed secret is used when available, otherwise their
+/// still-binding commitment stands in for it so a withheld reveal cannot
+/// prevent the draw from finalising.
+fn collect_openings(env: &Env, round: u32, eligible: &Vec<Address>) -> Vec<BytesN<32>> {
+    let commitments: Map<(u32, Address), BytesN<32>> = env
+        .storage()
+        .persistent()
+        .get(&COMMITMENTS)
+        .unwrap_or(Map::new(env));
+    let reveals: Map<(u32, Address), BytesN<32>> = env
+        .storage()
+        .persistent()
+        .get(&REVEALS)
+        .unwrap_or(Map::new(env));
+
+    let mut openings: Vec<BytesN<32>> = Vec::new(env);
+    for addr in eligible.iter() {
+        let key = (round, addr.clone());
+        let opening = reveals
+            .get(key.clone())
+            .or_else(|| commitments.get(key))
+            .unwrap_or_else(|| panic!("Missing opening for eligible member"));
+        openings.push_back(opening);
+    }
+    openings
+}
+
 #[cfg(test)]
 mod test;
+
+#[cfg(test)]
+mod lottery_test;
