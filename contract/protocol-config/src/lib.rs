@@ -132,6 +132,21 @@ impl ProtocolConfig {
         let params: ProtocolParams = env.storage().instance().get(&CONFIG).unwrap();
         collateral >= params.min_collateral && collateral <= params.max_collateral
     }
+
+    /// Replaces the full parameter set. Requires multisig approval.
+    ///
+    /// # Panics
+    /// Panics if approvals are insufficient or the new params are invalid.
+    #[allow(deprecated)]
+    pub fn update_params(env: Env, approvers: Vec<Address>, new_params: ProtocolParams) {
+        require_multisig(&env, &approvers);
+        new_params.require_valid();
+
+        env.storage().instance().set(&CONFIG, &new_params);
+
+        env.events()
+            .publish((symbol_short!("cfg_upd"),), (approvers, new_params));
+    }
 }
 
 impl ProtocolParams {
@@ -170,4 +185,44 @@ fn owner_exists(owners: &Vec<Address>, who: &Address) -> bool {
         }
     }
     false
+}
+
+/// Verifies that `approvers` contains at least `threshold` distinct owners,
+/// requiring authorization from each of them.
+///
+/// # Panics
+/// Panics if the protocol is uninitialized, any approver is not an owner, or
+/// fewer than `threshold` distinct owners approved.
+fn require_multisig(env: &Env, approvers: &Vec<Address>) {
+    let owners: Vec<Address> = env
+        .storage()
+        .instance()
+        .get(&OWNERS)
+        .unwrap_or(Vec::new(env));
+    let threshold: u32 = env.storage().instance().get(&THRESHOLD).unwrap_or(0);
+    assert!(threshold > 0, "Protocol config not initialized");
+
+    let mut approvals = 0u32;
+    let mut i = 0u32;
+    while i < approvers.len() {
+        let approver = approvers.get(i).unwrap();
+        assert!(owner_exists(&owners, &approver), "Approver is not an owner");
+        approver.require_auth();
+
+        let mut duplicate = false;
+        let mut j = 0u32;
+        while j < i {
+            if approvers.get(j).unwrap() == approver {
+                duplicate = true;
+                break;
+            }
+            j += 1;
+        }
+        if !duplicate {
+            approvals += 1;
+        }
+        i += 1;
+    }
+
+    assert!(approvals >= threshold, "Insufficient multisig approvals");
 }
