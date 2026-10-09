@@ -1,12 +1,13 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, BytesN, Env, Symbol, Vec,
+    contract, contractimpl, contracttype, symbol_short, Address, BytesN, Env, Map, Symbol, Vec,
 };
 
 const CONFIG: Symbol = symbol_short!("config");
 const OWNERS: Symbol = symbol_short!("owners");
 const THRESHOLD: Symbol = symbol_short!("thresh");
+const TOKENS: Symbol = symbol_short!("tokens");
 
 /// Basis-point denominator (100%).
 pub const BPS_DENOMINATOR: u32 = 10_000;
@@ -46,6 +47,23 @@ pub struct MultisigConfig {
     pub owners: Vec<Address>,
     pub threshold: u32,
 }
+
+/// Metadata about a token approved for protocol use.
+///
+/// Circles can be denominated in any whitelisted Stellar asset contract
+/// (SAC), whether that is the native XLM contract, a stablecoin such as USDC
+/// or EURC, or a custom token. The whitelist is what makes an asset
+/// "available" to circle organizers.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[contracttype]
+pub struct TokenInfo {
+    pub address: Address,
+    pub symbol: Symbol,
+    pub decimals: u32,
+}
+
+/// Maximum decimals a supported token may declare (SEP-41 bound).
+pub const MAX_TOKEN_DECIMALS: u32 = 18;
 
 /// ProtocolConfig holds the protocol-wide, multisig-controlled parameters
 /// for RotaFi and exposes them to the other contracts.
@@ -297,6 +315,91 @@ impl ProtocolConfig {
         }
     }
 
+    /// Whitelists a token (Stellar asset contract) for use by circles.
+    ///
+    /// Only whitelisted assets are shown as available currencies to circle
+    /// organizers. Requires multisig approval.
+    ///
+    /// # Panics
+    /// Panics if approvals are insufficient, the token is already whitelisted,
+    /// or the metadata is invalid (empty symbol or bad decimals).
+    #[allow(deprecated)]
+    pub fn add_supported_token(
+        env: Env,
+        approvers: Vec<Address>,
+        token: Address,
+        symbol: Symbol,
+        decimals: u32,
+    ) {
+        require_multisig(&env, &approvers);
+
+        assert!(
+            symbol != symbol_short!(""),
+            "Token symbol cannot be empty"
+        );
+        assert!(
+            decimals <= MAX_TOKEN_DECIMALS,
+            "Token decimals exceed maximum"
+        );
+
+        let mut tokens = load_tokens(&env);
+        assert!(
+            !tokens.contains_key(token.clone()),
+            "Token already supported"
+        );
+
+        tokens.set(token.clone(), TokenInfo {
+            address: token.clone(),
+            symbol: symbol.clone(),
+            decimals,
+        });
+        store_tokens(&env, &tokens);
+
+        env.events().publish(
+            (symbol_short!("tok_add"),),
+            (token, symbol, decimals),
+        );
+    }
+
+    /// Removes a previously whitelisted token. Requires multisig approval.
+    ///
+    /// # Panics
+    /// Panics if approvals are insufficient or the token is not whitelisted.
+    #[allow(deprecated)]
+    pub fn remove_supported_token(env: Env, approvers: Vec<Address>, token: Address) {
+        require_multisig(&env, &approvers);
+
+        let mut tokens = load_tokens(&env);
+        assert!(
+            tokens.remove(token.clone()).is_some(),
+            "Token is not supported"
+        );
+        store_tokens(&env, &tokens);
+
+        env.events()
+            .publish((symbol_short!("tok_rem"),), (token,));
+    }
+
+    /// Returns true when `token` is whitelisted for protocol use.
+    pub fn is_token_supported(env: Env, token: Address) -> bool {
+        load_tokens(&env).contains_key(token)
+    }
+
+    /// Returns metadata for a supported token, if present.
+    pub fn get_token_info(env: Env, token: Address) -> Option<TokenInfo> {
+        load_tokens(&env).get(token)
+    }
+
+    /// Returns metadata for every whitelisted token.
+    pub fn get_supported_tokens(env: Env) -> Vec<TokenInfo> {
+        let tokens = load_tokens(&env);
+        let mut all: Vec<TokenInfo> = Vec::new(&env);
+        for (_, info) in tokens.iter() {
+            all.push_back(info);
+        }
+        all
+    }
+
     /// Upgrades the contract to a new WASM implementation. Requires multisig
     /// approval.
     ///
@@ -363,6 +466,19 @@ fn load_owners(env: &Env) -> Vec<Address> {
 /// Persists an updated owner set.
 fn store_owners(env: &Env, owners: &Vec<Address>) {
     env.storage().instance().set(&OWNERS, owners);
+}
+
+/// Loads the whitelisted token registry.
+fn load_tokens(env: &Env) -> Map<Address, TokenInfo> {
+    env.storage()
+        .instance()
+        .get(&TOKENS)
+        .unwrap_or(Map::new(env))
+}
+
+/// Persists an updated token registry.
+fn store_tokens(env: &Env, tokens: &Map<Address, TokenInfo>) {
+    env.storage().instance().set(&TOKENS, tokens);
 }
 
 /// Returns true when `who` appears in `owners`.
