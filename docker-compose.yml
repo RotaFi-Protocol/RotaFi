@@ -1,0 +1,46 @@
+# RotaFi — local development stack
+#
+# Brings up a self-contained environment:
+#   soroban  - Stellar Quickstart local network with Soroban RPC (the sandbox)
+#   backend  - RotaFi REST API (Express + TypeScript, hot reload)
+#   keeper   - RotaFi keeper bot (round advancement, hot reload)
+#   frontend - RotaFi web UI (Next.js, hot reload)
+#
+# Quick start:
+#   cp docker/.env.example .env
+#   docker compose up --build
+#
+# Optional profiles:
+#   contracts - build and deploy the Soroban contracts to the local sandbox
+#               docker compose --profile contracts run --rm contracts
+name: rotafi
+
+services:
+  # ---------------------------------------------------------------- sandbox
+  soroban:
+    image: stellar/quickstart:${QUICKSTART_TAG:-testing}
+    container_name: rotafi-soroban
+    command: ["--local"]
+    environment:
+      ENABLE: "core,horizon,rpc"
+    ports:
+      - "${SOROBAN_PORT:-8000}:8000"
+    volumes:
+      - soroban-data:/opt/stellar
+      - ./docker/soroban-healthcheck.sh:/usr/local/bin/soroban-healthcheck.sh:ro
+    healthcheck:
+      test: ["CMD", "bash", "/usr/local/bin/soroban-healthcheck.sh"]
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+    networks:
+      - rotafi
+    restart: unless-stopped
+
+networks:
+  rotafi:
+    driver: bridge
+
+volumes:
+  soroban-data:
