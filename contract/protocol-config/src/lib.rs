@@ -220,6 +220,51 @@ impl ProtocolConfig {
             (approvers, min_collateral, max_collateral),
         );
     }
+
+    /// Adds a new multisig owner. Requires multisig approval.
+    #[allow(deprecated)]
+    pub fn add_owner(env: Env, approvers: Vec<Address>, new_owner: Address) {
+        require_multisig(&env, &approvers);
+
+        let mut owners = load_owners(&env);
+        assert!(!owner_exists(&owners, &new_owner), "Already an owner");
+        owners.push_back(new_owner.clone());
+        store_owners(&env, &owners);
+
+        env.events()
+            .publish((symbol_short!("own_add"),), (approvers, new_owner));
+    }
+
+    /// Removes an existing multisig owner. Requires multisig approval.
+    ///
+    /// # Panics
+    /// Panics if the owner is unknown or the removal would take the owner
+    /// count below the current signing threshold.
+    #[allow(deprecated)]
+    pub fn remove_owner(env: Env, approvers: Vec<Address>, owner: Address) {
+        require_multisig(&env, &approvers);
+
+        let owners = load_owners(&env);
+        let threshold: u32 = env.storage().instance().get(&THRESHOLD).unwrap_or(0);
+
+        let mut updated: Vec<Address> = Vec::new(&env);
+        let mut removed = false;
+        for existing in owners.iter() {
+            if existing == owner {
+                removed = true;
+            } else {
+                updated.push_back(existing);
+            }
+        }
+
+        assert!(removed, "Address is not an owner");
+        assert!(updated.len() >= threshold, "Removal would drop below threshold");
+
+        store_owners(&env, &updated);
+
+        env.events()
+            .publish((symbol_short!("own_rem"),), (approvers, owner));
+    }
 }
 
 impl ProtocolParams {
@@ -258,6 +303,19 @@ fn load_params(env: &Env) -> ProtocolParams {
 /// Persists an updated parameter set.
 fn store_params(env: &Env, params: &ProtocolParams) {
     env.storage().instance().set(&CONFIG, params);
+}
+
+/// Loads the current owner set.
+fn load_owners(env: &Env) -> Vec<Address> {
+    env.storage()
+        .instance()
+        .get(&OWNERS)
+        .unwrap_or(Vec::new(env))
+}
+
+/// Persists an updated owner set.
+fn store_owners(env: &Env, owners: &Vec<Address>) {
+    env.storage().instance().set(&OWNERS, owners);
 }
 
 /// Returns true when `who` appears in `owners`.
