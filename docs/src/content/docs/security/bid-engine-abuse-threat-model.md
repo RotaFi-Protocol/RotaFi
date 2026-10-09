@@ -367,3 +367,40 @@ No currently-shipped control fully closes the *enrollment* problem (A1/O1): an
 organizer who assembles a roster entirely of their own addresses can still
 poison it, but that is a membership problem, not an auction problem, and is the
 subject of the collateral-slashing model and reputation registry.
+
+## Residual risks and open questions
+
+Even with the hardened contract, the following are accepted or unresolved:
+
+- **O1 — Roster is trusted input.** `start_auction` trusts the caller-supplied
+  `members` list. There is no on-chain proof that an address is a distinct human
+  contributor, so Sybil resistance ultimately depends on enrollment (`A1`). A
+  malicious organizer who seeds the roster with controlled addresses can front
+  the auction with a coalition; this is the same organizer-fronted defaulting
+  concern documented in the collateral-slashing model.
+- **O2 — Nonce secrecy is off-chain.** If a member shares their `nonce`, their
+  discount is knowable ahead of reveal. The cost is bounded: they still cannot
+  bid outside `[min_discount_bps, max_discount_bps]`, and the commitment
+  prevents altering the discount. Nonetheless, nonce hygiene should be
+  emphasised to members and wallets.
+- **O3 — Timestamp trust (A3).** Commit and reveal deadlines rely on ledger
+  timestamps. A validator-coordinated shift could shorten or extend a window;
+  this is bounded by Stellar consensus and accepted.
+- **O4 — Organizer liveness.** Only `config.organizer` can open an auction.
+  If the organizer is unavailable, the round's auction cannot start and the
+  keeper cannot settle that round. A future permissionless-start fallback is a
+  candidate hardening.
+- **O5 — Aggressive discounts.** A member may bid the full `max_discount_bps`
+  (the 100% ceiling with no upper governance bound). The winner then receives
+  almost none of the pot and the redistribution is large. There is no deposit
+  or penalty for "bid and then default" beyond the collateral story in the
+  vault model.
+- **O6 — No on-chain bad-bidder marking.** Abusive patterns (e.g. an organizer
+  that consistently fills rosters with controlled addresses) produce no
+  on-chain signal. Cross-circle reputation for auction-related misbehaviour
+  remains off-chain for now.
+
+Decisions that need a governance call before these are closed: whether the max
+discount should become a per-circle governed control (O5), whether
+permissionless auction start should replace organizer-only start (O4), and
+whether auction-misbehaviour metrics should feed `ReputationRegistry` (O6).
