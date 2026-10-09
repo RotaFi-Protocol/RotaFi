@@ -7,17 +7,18 @@ description: Step-by-step guide to creating your first ROSCA circle on RotaFi.
 
 ### 1. Connect Your Wallet
 
-Open the RotaFi frontend and connect your **Freighter**, **xBull**, or **Rabet** wallet. Make sure your wallet is on the Stellar Testnet and has testnet USDC.
+Open the RotaFi frontend and connect your **Freighter**, **xBull**, or **Rabet** wallet. Make sure your wallet is on the Stellar Testnet and holds the token you want to use for the circle (testnet USDC, EURC, XLM, or a custom asset).
 
 ### 2. Fund Your Wallet
 
-Get testnet XLM from [Friendbot](https://friendbot.stellar.org) and testnet USDC from the Stellar testnet faucet.
+Get testnet XLM from [Friendbot](https://friendbot.stellar.org) and testnet USDC from the Stellar testnet faucet. For EURC or custom tokens, use Circle's testnet faucet or mint from the token issuer.
 
 ### 3. Create a Circle
 
 Navigate to the Circle Browser and click "Create Circle". Configure:
 
-- **Contribution Amount** — how much each member contributes per round (in USDC)
+- **Currency** — pick the asset circles are denominated in (USDC, EURC, XLM, or a custom token). All contributions, collateral, and payouts use this asset.
+- **Contribution Amount** — how much each member contributes per round (in the selected currency)
 - **Round Length** — e.g., 604800 seconds (1 week)
 - **Member Cap** — max number of members (at least 2)
 - **Payout Method** — Lottery, Auction, or Priority

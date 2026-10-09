@@ -21,8 +21,8 @@ RotaFi brings **ROSCA** (Rotating Savings and Credit Associations) — also know
 
 ### How it works
 
-1. **Create a circle** — Set contribution amount, round duration, member cap, and payout method
-2. **Members join** — Each posts a refundable USDC collateral stake
+1. **Create a circle** — Set contribution amount, round duration, member cap, payout method, and currency (XLM, USDC, EURC, or a custom Stellar asset)
+2. **Members join** — Each posts a refundable collateral stake in the circle's currency
 3. **Contribute each round** — Members deposit their share; the keeper bot tracks payments
 4. **One member gets the pot** — The full pooled amount is released each round
 5. **Repeat until complete** — Every member receives the pot exactly once

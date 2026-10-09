@@ -5,29 +5,35 @@ description: Per-circle escrow contract for managing contributions and payouts.
 
 The `contribution-vault` contract manages the lifecycle of a single ROSCA circle — member joining, contributions, payouts, and default handling.
 
+Each vault is initialized with a `VaultConfig` that includes a **`token_address`** — the Stellar asset contract the circle is denominated in. This is no longer hardcoded to USDC: a vault can run on XLM, EURC, or any custom Stellar token. Every money-moving function validates that the supplied token matches the configured one, so a vault never collects or pays out a different asset.
+
 ## Public Functions
 
 ### `initialize(config: VaultConfig)`
 
-Initializes a new vault for a circle. Must be called once per circle.
+Initializes a new vault for a circle. Must be called once per circle. The `config.token_address` binds the vault to its asset.
 
-### `join_vault(member: Address, usdc_token: Address)`
+### `join_vault(member: Address, token: Address)`
 
-Allows a member to join by staking `min_collateral` USDC. When all slots are filled, the vault auto-activates.
+Allows a member to join by staking `min_collateral` of the vault's configured token. When all slots are filled, the vault auto-activates.
+
+**Panics if:** `token != config.token_address`.
 
 **Requires:** `member.require_auth()`
 
-### `contribute(member: Address, usdc_token: Address)`
+### `contribute(member: Address, token: Address)`
 
 Submit a contribution for the current round. Prevents double-payment and non-member contributions.
 
+**Panics if:** `token != config.token_address`.
+
 **Requires:** `member.require_auth()`
 
-### `release_payout(winner: Address, usdc_token: Address)`
+### `release_payout(winner: Address, token: Address)`
 
-Releases the full pot (member_count × contribution) to the winner. Can only be called when all members have paid or the grace period has expired.
+Releases the full pot (member_count × contribution) to the winner in the vault's configured token. Can only be called when all members have paid or the grace period has expired.
 
-**Panics if:** winner has already received the pot, or conditions not met.
+**Panics if:** winner has already received the pot, `token != config.token_address`, or conditions not met.
 
 > Lottery circles should **not** use this — see the [Lottery Randomness](#lottery-randomness) section below.
 
@@ -43,11 +49,15 @@ Opens the previously committed secret once every eligible member has committed. 
 
 **Requires:** `member.require_auth()`, reveal phase open.
 
-### `release_lottery_payout(usdc_token: Address)`
+### `release_lottery_payout(token: Address)`
 
-Draws the lottery winner from the round's openings mixed with ledger data and releases the pot. The caller cannot choose or influence the winner.
+Draws the lottery winner from the round's openings mixed with ledger data and releases the pot in the vault's configured token. The caller cannot choose or influence the winner.
 
 Can be called once every eligible member has revealed, or after the reveal window expires (members who haven't revealed fall back to their still-binding commitments, so the pot can never be locked).
+
+### `get_token_address() -> Address`
+
+Returns the address of the Stellar asset contract the vault is denominated in.
 
 ### `get_round_randomness() -> Option<RoundRandomness>`
 

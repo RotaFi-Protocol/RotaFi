@@ -32,7 +32,7 @@ RotaFi consists of four main layers:
 Creates and manages circle instances. Stores circle metadata, enforces creation constraints (min 2 members, positive contributions), and emits events on creation.
 
 ### Contribution Vault
-Per-circle escrow contract. Accepts USDC contributions, tracks per-round payment status, holds member collateral, and releases the pot to the winner once conditions are met.
+Per-circle escrow contract. Accepts contributions in the circle's configured token (USDC, EURC, XLM, or a custom asset), tracks per-round payment status, holds member collateral, and releases the pot to the winner once conditions are met.
 
 ### Reputation Registry
 Shared, cross-circle reputation contract. Other contracts write default/completion events here. Any circle can read a member's history to make informed decisions about collateral requirements.
