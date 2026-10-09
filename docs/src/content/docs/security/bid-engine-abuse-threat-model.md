@@ -312,3 +312,35 @@ organizer's key). They are analysed as residual risks in
 [Residual risks](#residual-risks). Assumptions **A5–A8** are load-bearing and
 fully enforced by the hardened contract — frontrunning, sniping and Sybil
 bidding all attack exactly these enforced invariants.
+
+## Mitigations
+
+All mitigations below are **implemented and tested** in the current contract
+(there is no backlog item to enable them). They map one-to-one to the vectors
+above.
+
+| # | Mitigation | Vector closed | Enforced at |
+|---|---|---|---|
+| **M1** | Commit-reveal sealed bids: only a digest is stored until commits close; reveals checked against the digest | F1 | `commit_bid`, `reveal_bid` |
+| **M2** | Round binding: bids carry the open auction's round and are otherwise rejected | F2, F5 | `start_auction`, `commit_bid`, `reveal_bid` |
+| **M3** | Monotonic rounds: `round > LAST_ROUND`, recorded on resolve | F2, F5 | `start_auction`, `resolve_auction` |
+| **M4** | Deadlines: `commit_deadline` and `reveal_deadline`, with a minimum reveal window | F2, F8 | `AuctionConfig.require_valid`, phase derivation |
+| **M5** | Roster gating: only listed members may commit/reveal; one bid per member | F3 | `is_member`, per-member maps |
+| **M6** | Organizer authorization and on-chain parameter validation | F4 | `AuctionConfig.require_valid`, `organizer.require_auth()` |
+| **M7** | Deterministic tie-break by lexicographically smallest address | F6 | `resolve_auction` |
+| **M8** | Reserve (`min_discount_bps`) and ceiling (`max_discount_bps`) with valid-bid requirement | F7 | `reveal_bid`, `resolve_auction` |
+| **M9** | Permissionless, time-boxed resolution with partial-reveal fallback | F8 | `resolve_auction` |
+
+M1 is the core control and deserves emphasis. The combination of *hiding* until
+the commit phase closes and *binding* once it does is what turns a plaintext
+"sealed" auction into a true one: the discount of member *A* is unknowable by
+member *B* before B's commitment, and unalterable after the openings appear. A
+sniper armed with perfect transaction-ordering freedom (the strongest assumption
+Stellar's consensus tolerates) gains nothing, because there is no intermediate
+state in which a higher bid can be fabricated from observed one.
+
+M5 is what makes Sybil bidding moot at the contract layer: the set of eligible
+addresses is fixed at `start_auction`. Combined with M1 it also stops Sybil
+*observation* — a Sybil gains no informational edge by creating addresses,
+because the field is opaque to them just as it is to everyone else until the
+commit phase closes.
