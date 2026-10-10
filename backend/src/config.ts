@@ -65,4 +65,24 @@ export const config = {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
     max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
   },
+
+  // SEP-24 anchor used for fiat on-ramp (funding contributions) and fiat
+  // off-ramp (cashing out received pots).
+  //
+  // Defaults to the SDF test anchor (testanchor.stellar.org), which hosts a
+  // full SEP-24 + SEP-10 implementation on the Stellar testnet. Point these at
+  // a production anchor for mainnet deployments.
+  anchor: {
+    homeDomain: process.env.ANCHOR_HOME_DOMAIN || 'testanchor.stellar.org',
+    // Optional explicit override of the SEP-24 transfer server. When unset, the
+    // transfer server is resolved from the anchor's stellar.toml at startup.
+    transferServer: process.env.ANCHOR_TRANSFER_SERVER_URL || '',
+    transferServerSep24: process.env.ANCHOR_TRANSFER_SERVER_SEP24_URL || '',
+    // Base asset the protocol wires SEP-24 fiat ramps to by default.
+    defaultAsset: process.env.ANCHOR_DEFAULT_ASSET || 'USDC',
+    // Pass-through request timeout for anchor calls, in milliseconds.
+    timeoutMs: parseInt(process.env.ANCHOR_TIMEOUT_MS || '20000', 10),
+    // Per-request poll interval when the API layer tracks transaction state.
+    pollIntervalMs: parseInt(process.env.ANCHOR_POLL_INTERVAL_MS || '5000', 10),
+  },
 };
