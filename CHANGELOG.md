@@ -36,6 +36,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Testnet contract configuration module (`lib/contracts.ts`) defaulting to the canonical Stellar testnet deployment, plus an opt-in live on-chain vault reader (`lib/soroban.ts`, gated on `NEXT_PUBLIC_USE_LIVE_CONTRACTS=true`)
 - Persistent circle lifecycle store (`lib/lifecycle.ts`) with a deterministic per-round winner rotation and localStorage persistence
 
+#### Fiat On/Off Ramps (SEP-24 Anchors)
+- **SEP-24 anchor integration** — the backend proxies a Stellar SEP-24 anchor (defaults to the SDF test anchor) so wallets can fund contributions from fiat (deposit) and cash out received pots (withdraw); resolves the anchor's `stellar.toml`, relays interactive transfers, and polls transaction status
+- **SEP-10 web authentication** — challenge/response proxy (`GET /api/v1/anchors/auth/challenge`, `POST /api/v1/anchors/auth`) so auth-required anchors can be used; the connected wallet signs with Freighter and the JWT is passed as `Authorization: Bearer`
+- New anchor API surface: `GET /api/v1/anchors/info`, `GET /api/v1/anchors/assets/:code`, `POST /api/v1/anchors/deposit`, `POST /api/v1/anchors/withdraw`, `GET /api/v1/anchors/transactions/:id`, plus `ANCHOR_*` configuration in `backend/.env.example`
+- **Frontend fiat UI** — a `Fund & Cash Out` page (`/anchor`) with an asset/amount transfer panel, a `useAnchor` hook driving SEP-10 sign-in, interactive popup launch and status polling, and inline **Fund via fiat** / **Cash out pot** actions on the dashboard and circle detail pages
+- Anchor transfer history persisted locally, with popup-blocked fallbacks and live status badges
+
 #### Testing (Frontend E2E)
 - **Playwright E2E suite** covering wallet connect → browse circles → join circle → contribute each round → payout → circle completion, running against the testnet contract configuration (mock Freighter wallet fixture and a deterministic lifecycle simulation by default; live testnet reads opt-in via `E2E_LIVE_TESTNET=1`)
 - `Test Frontend E2E` GitHub Actions workflow installing Chromium and reporting Playwright results on PRs and master
@@ -50,6 +57,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `Makefile` shortcuts and `docker/.env.example` for the local stack
 
 #### Docs
+- Fiat on/off ramp guide covering the SEP-24 deposit/withdrawal flow, the anchor API surface and configuration (`docs/src/content/docs/guides/sep24-anchor-integration.md`)
 - Bid engine abuse threat model covering sealed-bid frontrunning, round-boundary bid sniping and Sybil/non-member bidding, with abuse vectors F1–F8, security assumptions A1–A8, on-chain mitigations M1–M9, a threat matrix, residual risks O1–O6 and a hardening backlog, all mapped to the enforced commit-reveal auction (`docs/src/content/docs/security/bid-engine-abuse-threat-model.md`)
 - Collateral slashing threat model covering security assumptions, economic incentives and default-profitability analysis, griefing attack vectors (repeat/unbounded slashing, late-payer front-running, stale-round slashing), collusion scenarios (winner-then-default, organizer-fronted defaulters, governance capture), mitigation strategies, a threat matrix, and a prioritized hardening backlog (`docs/src/content/docs/security/collateral-slashing-threat-model.md`)
 

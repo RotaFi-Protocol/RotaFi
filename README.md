@@ -27,6 +27,11 @@ RotaFi brings **ROSCA** (Rotating Savings and Credit Associations) — also know
 4. **One member gets the pot** — The full pooled amount is released each round
 5. **Repeat until complete** — Every member receives the pot exactly once
 
+Members can also **fund contributions from fiat** and **cash out a received pot**
+to their bank through an integrated [SEP-24](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0024.md)
+anchor (deposit/withdraw + SEP-10 auth), surfaced in the `Fund & Cash Out` tab
+of the frontend.
+
 ---
 
 ## Live
