@@ -8,6 +8,7 @@ import contributionsRouter from './routes/contributions';
 import reputationRouter from './routes/reputation';
 import bidsRouter from './routes/bids';
 import tokensRouter from './routes/tokens';
+import anchorsRouter from './routes/anchors';
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/v1/contributions', contributionsRouter);
 app.use('/api/v1/reputation', reputationRouter);
 app.use('/api/v1/bids', bidsRouter);
 app.use('/api/v1/tokens', tokensRouter);
+app.use('/api/v1/anchors', anchorsRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });

@@ -5,8 +5,9 @@ import { useWallet } from '@/hooks/useWallet';
 import { useCircleLifecycle } from '@/hooks/useCircleLifecycle';
 import WalletConnect from '@/components/WalletConnect';
 import PageHeader from '@/components/PageHeader';
+import AnchorActionButton from '@/components/AnchorActionButton';
 import { EmptyState } from '@/components/States';
-import type { CircleLifecycle } from '@/types';
+import type { CircleLifecycle, WalletState } from '@/types';
 import { formatAssetAmount, getAsset } from '@/lib/assets';
 import {
   canContribute,
@@ -48,6 +49,7 @@ export default function DashboardPage() {
           <DashboardLifecycleCard
             key={lifecycle.circleId}
             lifecycle={lifecycle}
+            wallet={wallet}
             self={wallet.publicKey ?? ''}
           />
         ))}
@@ -57,9 +59,11 @@ export default function DashboardPage() {
 
 function DashboardLifecycleCard({
   lifecycle: stored,
+  wallet,
   self,
 }: {
   lifecycle: CircleLifecycle;
+  wallet: WalletState;
   self: string;
 }) {
   const { lifecycle, contribute, payout } = useCircleLifecycle({
@@ -73,10 +77,10 @@ function DashboardLifecycleCard({
   const asset = getAsset(lifecycle.tokenSymbol);
   const completed = lifecycle.state === 'Completed';
   const pct = progressPercent(lifecycle);
-  const payoutAmount = formatAssetAmount(
-    String(BigInt(lifecycle.contributionAmount || '0') * BigInt(lifecycle.memberCap || 0)),
-    asset,
+  const potStroops = String(
+    BigInt(lifecycle.contributionAmount || '0') * BigInt(lifecycle.memberCap || 0),
   );
+  const payoutAmount = formatAssetAmount(potStroops, asset);
 
   return (
     <div className="card" data-testid={`dashboard-circle-${lifecycle.circleId}`}>
@@ -116,13 +120,23 @@ function DashboardLifecycleCard({
 
       <div className="detail-actions">
         {canContribute(lifecycle) && (
-          <button
-            onClick={contribute}
-            className="btn btn-primary"
-            data-testid="contribute"
-          >
-            Contribute {formatAssetAmount(lifecycle.contributionAmount, asset)}
-          </button>
+          <>
+            <button
+              onClick={contribute}
+              className="btn btn-primary"
+              data-testid="contribute"
+            >
+              Contribute {formatAssetAmount(lifecycle.contributionAmount, asset)}
+            </button>
+            <AnchorActionButton
+              direction="deposit"
+              wallet={wallet}
+              assetCode={asset?.symbol ?? lifecycle.tokenSymbol ?? 'USDC'}
+              amountStroops={lifecycle.contributionAmount}
+              testId={`fund-fiat-${lifecycle.circleId}`}
+              onCompleted={contribute}
+            />
+          </>
         )}
 
         {canReleasePayout(lifecycle) && (
@@ -136,9 +150,21 @@ function DashboardLifecycleCard({
         )}
 
         {lifecycle.hasReceivedPot && (
-          <span className="payout-note" data-testid="dashboard-received-pot">
-            You have received the pot.
-          </span>
+          <>
+            <span className="payout-note" data-testid="dashboard-received-pot">
+              You have received the pot.
+            </span>
+            {!completed && (
+              <AnchorActionButton
+                direction="withdraw"
+                wallet={wallet}
+                assetCode={asset?.symbol ?? lifecycle.tokenSymbol ?? 'USDC'}
+                amountStroops={potStroops}
+                label="Cash out pot"
+                testId={`cash-out-${lifecycle.circleId}`}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

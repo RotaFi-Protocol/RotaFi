@@ -198,6 +198,149 @@ List the currencies the protocol currently supports for circles.
 
 ---
 
+## Anchors (SEP-24)
+
+The backend acts as a server-side proxy to a [SEP-24](https://github.com/stellar/stellar-protocol/blob/master/ecosystem/sep-0024.md)
+anchor so wallets can **fund contributions from fiat** (deposit) and **cash
+out received pots** (withdraw). It resolves the anchor's `stellar.toml`,
+starts interactive transfers, and polls their status.
+
+By default the API targets the SDF test anchor (`testanchor.stellar.org`).
+Configure `ANCHOR_HOME_DOMAIN`, `ANCHOR_TRANSFER_SERVER_SEP24_URL` and
+`ANCHOR_DEFAULT_ASSET` to point at a production anchor.
+
+> The test anchor requires SEP-10 authentication. When it does, the
+> `Authorization: Bearer <jwt>` header must be supplied on deposit/withdraw
+> calls. Get a JWT via `/auth/challenge` → wallet signs → `/auth`.
+
+### `GET /api/v1/anchors/info`
+
+Discover the anchor's SEP-24 server, SEP-10 endpoint and per-asset limits.
+
+**Response 200:**
+```json
+{
+  "home_domain": "testanchor.stellar.org",
+  "transfer_server": "https://testanchor.stellar.org/sep24",
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "web_auth_endpoint": "https://testanchor.stellar.org/auth",
+  "auth_required": true,
+  "default_asset": "USDC",
+  "assets": [
+    {
+      "code": "USDC",
+      "deposit": { "enabled": true, "min_amount": 1, "max_amount": 10 },
+      "withdraw": { "enabled": true, "min_amount": 1, "max_amount": 10 }
+    }
+  ]
+}
+```
+
+### `GET /api/v1/anchors/assets/:code`
+
+Per-asset metadata (min/max amount, fees, whether deposit/withdraw are enabled).
+
+### `GET /api/v1/anchors/auth/challenge?account=G...`
+
+Fetch a SEP-10 challenge transaction for the connected wallet to sign.
+
+**Response 200:**
+```json
+{
+  "transaction": "AAAAAgAAA...",
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "web_auth_endpoint": "https://testanchor.stellar.org/auth"
+}
+```
+
+### `POST /api/v1/anchors/auth`
+
+Exchange a signed challenge transaction for a JWT.
+
+**Rate limit:** 10 req/min
+
+**Request Body:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| transaction | string | Base64 XDR of the signed SEP-10 challenge |
+
+**Response 200:** `{ "token": "eyJ..." }`
+
+### `POST /api/v1/anchors/deposit`
+
+Start an interactive fiat on-ramp. Returns the popup URL the user opens to
+complete KYC/payment; the anchor then delivers the asset to `account`.
+
+**Rate limit:** 10 req/min · **Headers:** `Authorization: Bearer <jwt>` (optional)
+
+**Request Body:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| asset_code | string | Asset to receive (e.g. `USDC`) |
+| account | string | Stellar account to receive the asset |
+| amount | string | Optional fiat amount to pre-fill |
+| memo | string | Optional memo |
+| lang | string | Optional language code |
+
+**Response 202:**
+```json
+{
+  "id": "8d0f...",
+  "url": "https://testanchor.stellar.org/sep24/interactive?token=...",
+  "asset_code": "USDC",
+  "account": "G...",
+  "status": "incomplete"
+}
+```
+
+**Response 401:** `{ "error": "SEP-10 authentication required" }`
+
+### `POST /api/v1/anchors/withdraw`
+
+Start an interactive fiat off-ramp to cash out a received pot. The anchor's
+interactive UI collects the bank/cash destination unless `dest` is provided.
+
+**Rate limit:** 10 req/min · **Headers:** `Authorization: Bearer <jwt>` (optional)
+
+**Request Body:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| asset_code | string | Asset to redeem (e.g. `USDC`) |
+| account | string | Stellar account sending the asset |
+| amount | string | Optional amount to withdraw |
+| dest | string | Optional destination account (bank/cash pickup) |
+| memo | string | Optional memo |
+| lang | string | Optional language code |
+
+**Response 202:** Same shape as `/deposit`.
+
+### `GET /api/v1/anchors/transactions/:id`
+
+Poll the status of a transfer. `terminal` is true once the transfer can no
+longer change; `succeeded` is true only when the status is `completed`.
+
+**Response 200:**
+```json
+{
+  "id": "8d0f...",
+  "status": "completed",
+  "amount_in": "5",
+  "amount_out": "4.9",
+  "stellar_transaction_id": "abc...",
+  "terminal": true,
+  "succeeded": true
+}
+```
+
+SEP-24 statuses include `incomplete`, `pending_user_transfer_start`,
+`pending_anchor`, `pending_stellar`, `pending_external`, `completed`,
+`refunded`, `expired`, `error`, `no_market`, `too_small` and `too_large`.
+
+---
+
 ## Reputation
 
 ### `GET /api/v1/reputation/score/:address`

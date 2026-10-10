@@ -29,7 +29,7 @@
 
 - [ ] **Yield on idle collateral** — route locked collateral to a Stellar lending protocol while waiting for payout round
 - [ ] **Cross-circle reputation** — reputation score portable across multiple circles
-- [ ] **Anchor integration** — allow members to fund circles via Stellar anchors (SEP-24) from fiat on-ramps
+- [x] **Anchor integration** — allow members to fund circles via Stellar anchors (SEP-24) from fiat on-ramps
 - [ ] **Circle NFT receipts** — mint an NFT on each completed circle as a proof-of-participation credential
 - [ ] **TypeScript SDK** — embed RotaFi circles into third-party dApps
 - [ ] **Mainnet deployment** — full audit + mainnet contract addresses

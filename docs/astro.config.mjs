@@ -53,6 +53,7 @@ export default defineConfig({
             { label: 'Docker Compose', link: '/guides/docker-compose' },
             { label: 'Deploying Contracts', link: '/guides/deploying-contracts' },
             { label: 'Creating a Circle', link: '/guides/creating-a-circle' },
+            { label: 'Fiat On/Off Ramps (SEP-24)', link: '/guides/sep24-anchor-integration' },
           ],
         },
       ],

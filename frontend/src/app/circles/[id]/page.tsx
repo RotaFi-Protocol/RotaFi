@@ -6,6 +6,7 @@ import { useCircleLifecycle } from '@/hooks/useCircleLifecycle';
 import WalletConnect from '@/components/WalletConnect';
 import AssetBadge from '@/components/AssetBadge';
 import PageHeader from '@/components/PageHeader';
+import AnchorActionButton from '@/components/AnchorActionButton';
 import { LoadingSpinner, ErrorState } from '@/components/States';
 import type { Circle } from '@/types';
 import { formatAssetAmount, getAsset } from '@/lib/assets';
@@ -42,10 +43,10 @@ export default function CircleDetailPage() {
   const self = wallet.publicKey ?? '';
   const joined = lifecycle.joined;
   const completed = lifecycle.state === 'Completed';
-  const payoutAmount = formatAssetAmount(
-    String(BigInt(lifecycle.contributionAmount || '0') * BigInt(lifecycle.memberCap || 0)),
-    asset,
+  const potStroops = String(
+    BigInt(lifecycle.contributionAmount || '0') * BigInt(lifecycle.memberCap || 0),
   );
+  const payoutAmount = formatAssetAmount(potStroops, asset);
 
   return (
     <div>
@@ -139,13 +140,23 @@ export default function CircleDetailPage() {
             )}
 
             {canContribute(lifecycle) && (
-              <button
-                onClick={contribute}
-                className="btn btn-primary"
-                data-testid="contribute"
-              >
-                Contribute {formatAssetAmount(lifecycle.contributionAmount, asset)}
-              </button>
+              <>
+                <button
+                  onClick={contribute}
+                  className="btn btn-primary"
+                  data-testid="contribute"
+                >
+                  Contribute {formatAssetAmount(lifecycle.contributionAmount, asset)}
+                </button>
+                <AnchorActionButton
+                  direction="deposit"
+                  wallet={wallet}
+                  assetCode={asset?.symbol ?? circle.token_symbol ?? 'USDC'}
+                  amountStroops={lifecycle.contributionAmount}
+                  testId="fund-fiat"
+                  onCompleted={contribute}
+                />
+              </>
             )}
 
             {canReleasePayout(lifecycle) && (
@@ -159,9 +170,21 @@ export default function CircleDetailPage() {
             )}
 
             {joined && lifecycle.hasReceivedPot && (
-              <span className="payout-note" data-testid="received-pot">
-                You have received the pot.
-              </span>
+              <>
+                <span className="payout-note" data-testid="received-pot">
+                  You have received the pot.
+                </span>
+                {!completed && (
+                  <AnchorActionButton
+                    direction="withdraw"
+                    wallet={wallet}
+                    assetCode={asset?.symbol ?? circle.token_symbol ?? 'USDC'}
+                    amountStroops={potStroops}
+                    label="Cash out pot"
+                    testId="cash-out-pot"
+                  />
+                )}
+              </>
             )}
           </div>
 
