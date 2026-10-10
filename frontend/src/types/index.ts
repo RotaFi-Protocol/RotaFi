@@ -93,3 +93,76 @@ export interface LifecycleMember {
   has_received_pot: boolean;
   rounds_contributed: number;
 }
+
+export type AnchorTransferDirection = 'deposit' | 'withdraw';
+
+export interface AnchorAssetLimits {
+  enabled: boolean;
+  min_amount?: number;
+  max_amount?: number;
+  fee_fixed?: number;
+  fee_percent?: number;
+}
+
+export interface AnchorAsset {
+  code: string;
+  deposit: AnchorAssetLimits;
+  withdraw: AnchorAssetLimits;
+}
+
+export interface AnchorInfo {
+  home_domain: string;
+  transfer_server: string;
+  network_passphrase: string;
+  web_auth_endpoint: string | null;
+  auth_required: boolean;
+  default_asset: string;
+  assets: AnchorAsset[];
+}
+
+export interface AnchorTransfer {
+  id: string;
+  url: string;
+  token?: string;
+  asset_code: string;
+  account: string;
+  status: string;
+}
+
+export interface AnchorTransaction {
+  id: string;
+  status: string;
+  terminal?: boolean;
+  succeeded?: boolean;
+  amount_in?: string;
+  amount_out?: string;
+  amount_fee?: string;
+  asset_code?: string;
+  stellar_transaction_id?: string;
+  external_transaction_id?: string;
+  message?: string;
+  more_info_url?: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export type AnchorTransferState =
+  | 'idle'
+  | 'authenticating'
+  | 'starting'
+  | 'awaiting_user'
+  | 'pending'
+  | 'completed'
+  | 'failed';
+
+export interface AnchorTransferRecord {
+  id: string;
+  direction: AnchorTransferDirection;
+  assetCode: string;
+  amount?: string;
+  account: string;
+  status: string;
+  url: string;
+  createdAt: number;
+  updatedAt: number;
+}

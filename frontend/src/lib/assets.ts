@@ -73,3 +73,18 @@ export function assetSymbolFor(opts: { token_symbol?: string; token_address?: st
   const byAddress = getAsset(opts.token_address);
   return byAddress?.symbol ?? (opts.token_address ? 'CUSTOM' : 'USDC');
 }
+
+/**
+ * Converts a raw token amount (smallest unit/stroops) to a human-readable
+ * decimal string suitable for SEP-24 anchor requests (e.g. "5" or "12.5").
+ */
+export function toHumanUnits(amount: string | number | undefined, asset?: Asset | null): string {
+  const decimals = asset?.decimals ?? 7;
+  const numeric = typeof amount === 'number' ? amount : Number(amount || 0);
+  if (!Number.isFinite(numeric)) return '0';
+  const units = numeric / 10 ** decimals;
+  return units
+    .toFixed(decimals)
+    .replace(/\.?0+$/, '')
+    .replace(/^\./, '0.');
+}
