@@ -630,6 +630,126 @@ pre, code {
   gap: var(--space-4);
 }
 
+/* SEP-24 anchor UI */
+.anchor-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 560px;
+}
+
+.anchor-form {
+  margin-top: var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: var(--space-3);
+}
+
+.anchor-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.anchor-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.anchor-input {
+  font: inherit;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  width: 100%;
+}
+
+.anchor-limits {
+  margin: var(--space-3) 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+}
+
+.anchor-actions {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.anchor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.anchor-status.is-pending { color: var(--color-warning); }
+.anchor-status.is-success { color: var(--color-success); }
+.anchor-status.is-danger { color: var(--color-danger); }
+.anchor-status.is-idle { color: var(--color-text-muted); }
+
+.anchor-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-warning);
+  animation: spin 1.2s linear infinite;
+}
+
+.anchor-error {
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+  margin: var(--space-3) 0 0;
+}
+
+.anchor-note {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  margin: var(--space-2) 0 0;
+}
+
+.anchor-note a {
+  color: var(--color-primary);
+}
+
+.anchor-active {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.anchor-active-label { font-size: 0.875rem; font-weight: 600; color: var(--color-text-soft); }
+
+.anchor-reopen {
+  font-size: 0.8125rem;
+  color: var(--color-primary);
+}
+
+/* Compact inline action used next to Contribute / Release Payout buttons */
+.anchor-action {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.anchor-mini-badge {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.anchor-mini-badge.completed { color: var(--color-success); }
+
 .visually-hidden {
   position: absolute;
   width: 1px;
