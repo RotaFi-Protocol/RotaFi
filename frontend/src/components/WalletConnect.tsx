@@ -30,11 +30,17 @@ export default function WalletConnect({
     return (
       <div className="wallet-connect">
         <span className="wallet-status-dot is-connected" aria-hidden="true" />
-        <span className="wallet-address">
+        <span className="wallet-address" data-testid="wallet-address">
           {wallet.publicKey.slice(0, 4)}...{wallet.publicKey.slice(-4)}
         </span>
-        <span className="wallet-provider">{wallet.provider}</span>
-        <button onClick={onDisconnect} className="btn btn-ghost wallet-disconnect">
+        <span className="wallet-provider" data-testid="wallet-provider">
+          {wallet.provider}
+        </span>
+        <button
+          onClick={onDisconnect}
+          className="btn btn-ghost wallet-disconnect"
+          data-testid="wallet-disconnect"
+        >
           Disconnect
         </button>
       </div>
@@ -44,18 +50,46 @@ export default function WalletConnect({
   return (
     <div className="wallet-connect">
       <div className="wallet-actions">
-        <WalletButton onClick={() => onConnect('freighter')} label="Freighter" />
-        <WalletButton onClick={() => onConnect('xbull')} label="xBull" />
-        <WalletButton onClick={() => onConnect('rabet')} label="Rabet" />
+        <WalletButton
+          onClick={() => onConnect('freighter')}
+          label="Freighter"
+          testId="connect-freighter"
+        />
+        <WalletButton
+          onClick={() => onConnect('xbull')}
+          label="xBull"
+          testId="connect-xbull"
+        />
+        <WalletButton
+          onClick={() => onConnect('rabet')}
+          label="Rabet"
+          testId="connect-rabet"
+        />
       </div>
-      {error && <p className="wallet-error">{error}</p>}
+      {error && (
+        <p className="wallet-error" data-testid="wallet-error">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
-function WalletButton({ onClick, label }: { onClick: () => void; label: string }) {
+function WalletButton({
+  onClick,
+  label,
+  testId,
+}: {
+  onClick: () => void;
+  label: string;
+  testId: string;
+}) {
   return (
-    <button onClick={onClick} className="btn btn-dark">
+    <button
+      onClick={onClick}
+      className="btn btn-dark"
+      data-testid={testId}
+    >
       {label}
     </button>
   );

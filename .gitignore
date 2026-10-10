@@ -18,6 +18,12 @@ yarn-error.log*
 out/
 .next/
 
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/.playwright/
+
 # Build
 dist/
 **/dist/
@@ -28,6 +34,7 @@ build/
 .env
 .env.*
 !.env.example
+!.env.*.example
 
 # IDE
 .idea/
