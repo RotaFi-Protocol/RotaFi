@@ -283,14 +283,19 @@ export async function getSep24Transaction(
   return (payload?.transaction ?? payload) as Sep24Transaction;
 }
 
-/** True when a SEP-24 transaction has reached a terminal state. */
+const TERMINAL_SEP24_STATUSES = [
+  'completed',
+  'refunded',
+  'expired',
+  'no_market',
+  'too_small',
+  'too_large',
+  'error',
+] as const;
+
+/** True when a SEP-24 transaction can no longer change. `pending_external` is still in progress. */
 export function isTerminalSep24Status(status?: string): boolean {
-  return Boolean(
-    status &&
-      ['completed', 'pending_external', 'no_market', 'too_small', 'too_large', 'error'].includes(
-        status,
-      ),
-  );
+  return Boolean(status && (TERMINAL_SEP24_STATUSES as readonly string[]).includes(status));
 }
 
 /** Convenience wrapper: asset codes the anchor accepts for deposit this session. */

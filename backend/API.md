@@ -320,7 +320,8 @@ interactive UI collects the bank/cash destination unless `dest` is provided.
 ### `GET /api/v1/anchors/transactions/:id`
 
 Poll the status of a transfer. `terminal` is true once the transfer can no
-longer change; `succeeded` is true only when the status is `completed`.
+longer change. `pending_external` is not terminal. `refunded` and `expired`
+are terminal. `succeeded` is true only when the status is `completed`.
 
 **Response 200:**
 ```json
