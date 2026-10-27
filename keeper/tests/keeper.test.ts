@@ -233,4 +233,89 @@ describe('KeeperEngine', () => {
       done();
     }, 300);
   });
+
+  it('isolates per-vault failures so healthy vaults still advance and tracks per-vault error state', (done) => {
+    const engine = new KeeperEngine({
+      ...createTestConfig(),
+      maxRetriesPerVault: 1,
+      retryDelayMs: 5,
+    });
+
+    const badVault = createTestVault({
+      circle_id: 101,
+      members_paid_current_round: 3,
+      member_count: 3,
+    });
+    const healthyVault = createTestVault({
+      circle_id: 102,
+      members_paid_current_round: 3,
+      member_count: 3,
+    });
+
+    engine.setVaultState(badVault);
+    engine.setVaultState(healthyVault);
+
+    const origProcessVault = (engine as any).processVault.bind(engine);
+    jest.spyOn(engine as any, 'processVault').mockImplementation(async (vault: any, corrId: any) => {
+      if (vault.circle_id === 101) {
+        throw new Error('RPC timeout for vault 101');
+      }
+      return origProcessVault(vault, corrId);
+    });
+
+    engine.start();
+
+    setTimeout(() => {
+      engine.stop();
+      const state = engine.getState();
+      expect(state.roundsProcessed).toBeGreaterThanOrEqual(1);
+      expect(healthyVault.current_round).toBe(2);
+      expect(state.errors).toBeGreaterThanOrEqual(1);
+
+      const errState = engine.getVaultErrorState(101);
+      expect(errState).toBeDefined();
+      expect(errState?.lastError).toBe('RPC timeout for vault 101');
+      expect(errState?.consecutiveFailures).toBeGreaterThanOrEqual(1);
+      expect(errState?.totalFailures).toBeGreaterThanOrEqual(1);
+      expect(engine.getVaultErrorState(102)).toBeUndefined();
+      done();
+    }, 250);
+  });
+
+  it('retries transient vault failure with backoff and clears consecutiveFailures on recovery', (done) => {
+    const engine = new KeeperEngine({
+      ...createTestConfig(),
+      maxRetriesPerVault: 2,
+      retryDelayMs: 5,
+    });
+
+    const flakyVault = createTestVault({
+      circle_id: 202,
+      members_paid_current_round: 3,
+      member_count: 3,
+    });
+    engine.setVaultState(flakyVault);
+
+    let attempts = 0;
+    const origProcessVault = (engine as any).processVault.bind(engine);
+    jest.spyOn(engine as any, 'processVault').mockImplementation(async (vault: any, corrId: any) => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error('Transient Horizon 503');
+      }
+      return origProcessVault(vault, corrId);
+    });
+
+    engine.start();
+
+    setTimeout(() => {
+      engine.stop();
+      const state = engine.getState();
+      expect(attempts).toBeGreaterThanOrEqual(2);
+      expect(state.roundsProcessed).toBeGreaterThanOrEqual(1);
+      expect(state.errors).toBe(0);
+      expect(flakyVault.current_round).toBe(2);
+      done();
+    }, 250);
+  });
 });

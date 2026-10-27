@@ -38,10 +38,22 @@ export interface MemberInfo {
   is_active: boolean;
 }
 
+export interface VaultErrorState {
+  consecutiveFailures: number;
+  totalFailures: number;
+  lastError: string;
+  lastErrorTime: number;
+  nextRetryTime: number;
+}
+
 export interface KeeperConfig {
   pollIntervalMs: number;
   vaultAddress: string;
   rpcUrl: string;
+  maxRetriesPerVault?: number;
+  retryDelayMs?: number;
+  backoffBaseMs?: number;
+  maxBackoffMs?: number;
 }
 
 export interface KeeperState {
@@ -51,6 +63,7 @@ export interface KeeperState {
   defaultsDetected: number;
   payoutsTriggered: number;
   errors: number;
+  vaultErrors?: Record<number, VaultErrorState>;
 }
 
 export interface RoundLifecycleEvent {
