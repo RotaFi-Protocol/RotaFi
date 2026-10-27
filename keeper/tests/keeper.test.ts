@@ -1,6 +1,15 @@
+import http from 'http';
 import { KeeperEngine } from '../src/engine';
 import { KeeperConfig, VaultState } from '../src/types';
 import { checkRoundAdvancement, findDefaulters, determineSlashActions, isCircleComplete } from '../src/watchers';
+import {
+  DEFAULT_POLL_INTERVAL_MS,
+  DEFAULT_SOROBAN_RPC_URL,
+  gracefulShutdown,
+  parseHealthPort,
+  parseKeeperConfig,
+  startHealthServer,
+} from '../src/index';
 
 function createTestVault(overrides: Partial<VaultState> = {}): VaultState {
   return {
@@ -232,5 +241,118 @@ describe('KeeperEngine', () => {
       expect(state.roundsProcessed).toBeGreaterThanOrEqual(1);
       done();
     }, 300);
+  });
+});
+
+function httpGetJson(port: number, path: string): Promise<{ statusCode: number; body: any }> {
+  return new Promise((resolve, reject) => {
+    const req = http.get({ hostname: '127.0.0.1', port, path }, (res) => {
+      let raw = '';
+      res.on('data', (chunk) => {
+        raw += chunk;
+      });
+      res.on('end', () => {
+        try {
+          resolve({ statusCode: res.statusCode || 0, body: JSON.parse(raw) });
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+    req.on('error', reject);
+  });
+}
+
+describe('Keeper Bootstrap: config parsing, health server, and gracefulShutdown', () => {
+  it('parses valid environment configuration and falls back on missing or invalid values', () => {
+    const defaults = parseKeeperConfig({});
+    expect(defaults).toEqual({
+      pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
+      vaultAddress: '',
+      rpcUrl: DEFAULT_SOROBAN_RPC_URL,
+    });
+
+    const invalidEnv = parseKeeperConfig({
+      POLL_INTERVAL_MS: 'not-a-number',
+      CONTRIBUTION_VAULT_ADDRESS: '   ',
+      SOROBAN_RPC_URL: '   ',
+    });
+    expect(invalidEnv.pollIntervalMs).toBe(DEFAULT_POLL_INTERVAL_MS);
+    expect(invalidEnv.vaultAddress).toBe('');
+    expect(invalidEnv.rpcUrl).toBe(DEFAULT_SOROBAN_RPC_URL);
+
+    const negativeEnv = parseKeeperConfig({ POLL_INTERVAL_MS: '-500' });
+    expect(negativeEnv.pollIntervalMs).toBe(DEFAULT_POLL_INTERVAL_MS);
+
+    const customEnv = parseKeeperConfig({
+      POLL_INTERVAL_MS: '15000',
+      CONTRIBUTION_VAULT_ADDRESS: 'CVAULT123',
+      SOROBAN_RPC_URL: 'http://localhost:8000/rpc',
+    });
+    expect(customEnv).toEqual({
+      pollIntervalMs: 15000,
+      vaultAddress: 'CVAULT123',
+      rpcUrl: 'http://localhost:8000/rpc',
+    });
+
+    expect(parseHealthPort({})).toBe(0);
+    expect(parseHealthPort({ KEEPER_HEALTH_PORT: 'abc' })).toBe(0);
+    expect(parseHealthPort({ KEEPER_HEALTH_PORT: '-1' })).toBe(0);
+    expect(parseHealthPort({ KEEPER_HEALTH_PORT: '70000' })).toBe(0);
+    expect(parseHealthPort({ KEEPER_HEALTH_PORT: '8081' })).toBe(8081);
+  });
+
+  it('serves 200 on /healthz with engine state and 404 on unknown routes', async () => {
+    const engine = new KeeperEngine(createTestConfig());
+    const server = startHealthServer(0, engine);
+
+    await new Promise<void>((resolve) => {
+      if (server.listening) resolve();
+      else server.once('listening', () => resolve());
+    });
+
+    try {
+      const addr = server.address();
+      const port = typeof addr === 'object' && addr ? addr.port : 0;
+      expect(port).toBeGreaterThan(0);
+
+      const healthRes = await httpGetJson(port, '/healthz');
+      expect(healthRes.statusCode).toBe(200);
+      expect(healthRes.body).toMatchObject({
+        status: 'healthy',
+        isRunning: false,
+        roundsProcessed: 0,
+        defaultsDetected: 0,
+        payoutsTriggered: 0,
+        errors: 0,
+      });
+
+      const notFoundRes = await httpGetJson(port, '/unknown');
+      expect(notFoundRes.statusCode).toBe(404);
+      expect(notFoundRes.body).toEqual({ error: 'Not found' });
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it('stops the engine interval, closes the health server, and exits cleanly on gracefulShutdown', async () => {
+    const engine = new KeeperEngine(createTestConfig());
+    engine.start();
+    expect(engine.getState().isRunning).toBe(true);
+
+    const server = startHealthServer(0, engine);
+    await new Promise<void>((resolve) => {
+      if (server.listening) resolve();
+      else server.once('listening', () => resolve());
+    });
+
+    const closeSpy = jest.spyOn(server, 'close');
+    const exitMock = jest.fn();
+
+    gracefulShutdown(engine, server, exitMock as unknown as (code: number) => never);
+
+    expect(engine.getState().isRunning).toBe(false);
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    expect(exitMock).toHaveBeenCalledWith(0);
   });
 });
