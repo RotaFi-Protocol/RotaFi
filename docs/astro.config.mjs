@@ -29,6 +29,7 @@ export default defineConfig({
             { label: 'Contribution Vault', link: '/contracts/contribution-vault' },
             { label: 'Reputation Registry', link: '/contracts/reputation-registry' },
             { label: 'Bid Engine', link: '/contracts/bid-engine' },
+            { label: 'Protocol Config', link: '/contracts/protocol-config' },
             { label: 'Deployed Addresses', link: '/contracts/deployed-addresses' },
           ],
         },
