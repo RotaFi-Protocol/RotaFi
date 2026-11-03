@@ -287,7 +287,7 @@ export async function getSep24Transaction(
 export function isTerminalSep24Status(status?: string): boolean {
   return Boolean(
     status &&
-      ['completed', 'pending_external', 'no_market', 'too_small', 'too_large', 'error'].includes(
+      ['completed', 'refunded', 'expired', 'no_market', 'too_small', 'too_large', 'error'].includes(
         status,
       ),
   );

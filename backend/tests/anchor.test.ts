@@ -6,7 +6,7 @@ jest.mock('../src/services/sep24', () => ({
   getSep24AssetInfo: jest.fn(),
   getSep24Transaction: jest.fn(),
   isTerminalSep24Status: jest.fn((status?: string) =>
-    ['completed', 'pending_external', 'no_market', 'too_small', 'too_large', 'error'].includes(
+    ['completed', 'refunded', 'expired', 'no_market', 'too_small', 'too_large', 'error'].includes(
       status || '',
     ),
   ),
